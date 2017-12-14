@@ -58,7 +58,7 @@ namespace AddTaskToBacklogItems
             areas = tfsRepository.GetAreas(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
             releases = tfsRepository.GetIterationPaths(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject, settings.TfsArea);
             activities = new List<string>() { "Testing" };
-            resources = new List<string>() { "Michael Welch" }; // tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
+            resources = tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject).Select(u => u.DisplayName).ToList(); // new List<string>() { "Michael Welch" }; // tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
         }
 
         private void btnGo_Click(object sender, RoutedEventArgs e)

@@ -402,17 +402,30 @@ namespace AddTaskToBacklogItems
             }
         }
 
-        // Cache This
-        public List<UserResource> GetUsers(string tfsServer, string tfsWorkStore, string tfsProject)
+        public List<UserResource> GetContributors(string tfsServer, string tfsWorkStore, string tfsProject)
         {
-            var tfia = GetContributors(tfsServer, tfsWorkStore, tfsProject);
-            return tfia.Select(t => new UserResource() { DisplayName = t.DisplayName, UniqueName = t.UniqueName, UniqueUserId = t.UniqueUserId }).ToList();
+            return GetGroupMembers(tfsServer, tfsWorkStore, tfsProject, "Contributors");
         }
 
-        private TeamFoundationIdentity[] GetContributors(string tfsServer, string tfsWorkStore, string tfsProject)
-        {
-            const string groupName = "Contributors";
 
+        // Cache This
+        public List<UserResource> GetGroupMembers(string tfsServer, string tfsWorkStore, string tfsProject, string userGroup)
+        {
+            var groupList = GetGroups(tfsServer, tfsWorkStore, tfsProject);
+            var group = groupList.FirstOrDefault(o => o.DisplayName.Contains(userGroup));
+
+            var userList = GetGroupMembers(tfsServer, tfsWorkStore, tfsProject, group);
+            return userList.Select(t => new UserResource() { DisplayName = t.DisplayName, UniqueName = t.UniqueName, UniqueUserId = t.UniqueUserId }).ToList();
+        }
+
+        public List<string> GetGroupNames(string tfsServer, string tfsWorkStore, string tfsProject)
+        {
+            var groups = GetGroups(tfsServer, tfsWorkStore, tfsProject);
+            return groups.Select(g => g.DisplayName).ToList();
+        }
+
+        private TeamFoundationIdentity[] GetGroups(string tfsServer, string tfsWorkStore, string tfsProject)
+        {
             ICommonStructureService css = GetCommonStructureService(tfsServer, tfsWorkStore);
             TfsTeamProjectCollection projectCollection = GetProjects(tfsServer, tfsWorkStore);
 
@@ -427,7 +440,14 @@ namespace AddTaskToBacklogItems
 
             // get the tfs group
             TeamFoundationIdentity[] groupList = ims.ListApplicationGroups(project.Uri.ToString(), Microsoft.TeamFoundation.Framework.Common.ReadIdentityOptions.ExtendedProperties);
-            var group = groupList.FirstOrDefault(o => o.DisplayName.Contains(groupName));  // you can also use DisplayName
+
+            return groupList;
+        }
+
+        private TeamFoundationIdentity[] GetGroupMembers(string tfsServer, string tfsWorkStore, string tfsProject, TeamFoundationIdentity group)
+        {
+            TfsTeamProjectCollection projectCollection = GetProjects(tfsServer, tfsWorkStore);
+            IIdentityManagementService ims = projectCollection.GetService<IIdentityManagementService>();
 
             // group doesn't exist
             if (group == null) return null;
@@ -438,10 +458,10 @@ namespace AddTaskToBacklogItems
             if (groupIdentity.Members.Length == 0) return null;
 
             // There are users, so grab their IDs and we'll query for their TFS identity info. Sadly, the Members object is an IdentityDescriptor object, which lacks user names and such.
-            var groupMemberIdentifiers = groupIdentity.Members.Select(m => new Guid(m.Identifier)).ToArray<Guid>();
+            var groupMemberIdentifiers = groupIdentity.Members; // .Select(m => new Guid(m.Identifier)).ToArray<Guid>();
 
             // convert to a list
-            TeamFoundationIdentity[] tfia = ims.ReadIdentities(groupMemberIdentifiers, MembershipQuery.Expanded);
+            TeamFoundationIdentity[] tfia = ims.ReadIdentities(groupIdentity.Members, MembershipQuery.Expanded, ReadIdentityOptions.ExtendedProperties);
             return tfia;
 
             //// Now flatten that list
