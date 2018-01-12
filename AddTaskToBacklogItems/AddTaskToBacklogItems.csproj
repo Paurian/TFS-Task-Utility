@@ -253,6 +253,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="CentracsAreaConverter.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TFSRepository.cs" />
     <Page Include="MainWindow.xaml">

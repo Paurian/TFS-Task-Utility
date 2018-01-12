@@ -57,9 +57,25 @@ namespace AddTaskToBacklogItems
 
             if (PropertyChanged != null)
             {
+                switch (propertyName)
+                {
+                    case "TfsIteration":
+                        PropertyChanged(this, new PropertyChangedEventArgs("HasIterationValue"));
+                        break;
+                    case "TfsProject":
+                        PropertyChanged(this, new PropertyChangedEventArgs("HasProjectValue"));
+                        break;
+                    case "TfsArea":
+                        PropertyChanged(this, new PropertyChangedEventArgs("HasAreaValue"));
+                        break;
+                }
                 PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
+
+        public bool HasIterationValue { get { return !String.IsNullOrWhiteSpace(TfsIteration); } }
+        public bool HasProjectValue { get { return !String.IsNullOrWhiteSpace(TfsProject); } }
+        public bool HasAreaValue { get { return !String.IsNullOrWhiteSpace(TfsArea); } }
 
         private bool isVerified = false;
         public bool IsVerified { get { return isVerified; } set { isVerified = value; NotifyPropertyChanged(); } }
@@ -76,6 +92,11 @@ namespace AddTaskToBacklogItems
         private string tfsAreaValue;
         public string TfsArea { get { return tfsAreaValue; } set { tfsAreaValue = value; NotifyPropertyChanged(); } }
         // public string TfsAreaPath { get { return TfsProject + @"\" + TfsArea; } }
+
+        public string GetWrappedTfsArea()
+        {
+            return tfsAreaValue?.Replace("Centracs\\", "[Centracs]\\");
+        }
 
         public string tfsIterationValue;
         public string TfsIteration { get { return tfsIterationValue; } set { tfsIterationValue = value; /** TfsIterationPath = value; **/ NotifyPropertyChanged(); } }

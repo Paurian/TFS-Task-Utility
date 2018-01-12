@@ -28,7 +28,6 @@ namespace AddTaskToBacklogItems
         private List<string> activities;
         private TFSRepository tfsRepository;
         public List<StoryItem> StoryItems { get; set; }
-        public bool isVerified = false;
 
         public MainWindow()
         {
@@ -57,8 +56,9 @@ namespace AddTaskToBacklogItems
             projects = tfsRepository.GetProjectNames(settings.TfsServer, settings.TfsWorkStore);
             areas = tfsRepository.GetAreas(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
             releases = tfsRepository.GetIterationPaths(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject, settings.TfsArea);
-            activities = new List<string>() { "Testing" };
-            resources = tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject).Select(u => u.DisplayName).ToList(); // new List<string>() { "Michael Welch" }; // tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
+            activities = tfsRepository.GetActivities();
+            // resources = tfsRepository.GetContributors(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject).Select(u => u.DisplayName).ToList(); // new List<string>() { "Michael Welch" }; // tfsRepository.GetUsers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
+            resources = tfsRepository.GetGroupAreaMembers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject, settings.GetWrappedTfsArea()).Select(u => u.DisplayName).OrderBy(o => o).ToList();
         }
 
         private void btnGo_Click(object sender, RoutedEventArgs e)
@@ -92,8 +92,14 @@ namespace AddTaskToBacklogItems
         private void cbArea_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             releases = tfsRepository.GetIterationPaths(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject, settings.TfsArea);
+            resources = tfsRepository.GetGroupAreaMembers(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject, settings.GetWrappedTfsArea()).Select(u => u.DisplayName).OrderBy(o => o).ToList();
             cbRelease.SelectedValue = null;
             cbRelease.ItemsSource = releases;
+            if (!resources.Any(r => r == cbNewAssignedTo.Text))
+            {
+                cbNewAssignedTo.SelectedValue = null;
+            }
+            cbNewAssignedTo.ItemsSource = resources;
         }
 
         private void btnPreview_Click(object sender, RoutedEventArgs e)

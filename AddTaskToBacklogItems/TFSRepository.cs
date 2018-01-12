@@ -72,6 +72,13 @@ namespace AddTaskToBacklogItems
             return iterationPaths;
         }
 
+        // Cache This
+        public List<string> GetActivities()
+        {
+            // Unless activities are pulled from a custom field, they seem to be statically assigned and unchangable:
+            return new List<string>() { "Deployment", "Design", "Development", "Documentation", "Requirements", "Testing" };
+        }
+
         public List<string> GetRecursivePaths(string tfsProject, NodeCollection nodeCollection)
         {
             List<string> nodePaths = new List<string>();
@@ -404,17 +411,46 @@ namespace AddTaskToBacklogItems
 
         public List<UserResource> GetContributors(string tfsServer, string tfsWorkStore, string tfsProject)
         {
-            return GetGroupMembers(tfsServer, tfsWorkStore, tfsProject, "Contributors");
+            return GetGroupAreaMembers(tfsServer, tfsWorkStore, tfsProject, "Contributors", MembershipQuery.Direct);
         }
 
+        public List<UserResource> GetGroupAreaMembers(string tfsServer, string tfsWorkStore, string tfsProject, string userGroupArea)
+        {
+            List<UserResource> result = null;
+            if (userGroupArea != null)
+            {
+                result = GetGroupAreaMembers(tfsServer, tfsWorkStore, tfsProject, userGroupArea, MembershipQuery.Direct);
+            }
+            if (result == null || result.Count == 0)
+            {
+                result = GetGroupAreaMembers(tfsServer, tfsWorkStore, tfsProject, tfsProject, MembershipQuery.Direct);
+            }
+
+            if (result == null)
+            {
+                result = new List<UserResource>();
+            }
+
+            return result;
+        }
 
         // Cache This
-        public List<UserResource> GetGroupMembers(string tfsServer, string tfsWorkStore, string tfsProject, string userGroup)
+        public List<UserResource> GetGroupAreaMembers(string tfsServer, string tfsWorkStore, string tfsProject, string userGroupArea, MembershipQuery membershipQueryType)
         {
             var groupList = GetGroups(tfsServer, tfsWorkStore, tfsProject);
-            var group = groupList.FirstOrDefault(o => o.DisplayName.Contains(userGroup));
+            var group = groupList?.FirstOrDefault(o => o.DisplayName.Contains(userGroupArea));
 
-            var userList = GetGroupMembers(tfsServer, tfsWorkStore, tfsProject, group);
+            if (group == null)
+            {
+                return null;
+            }
+
+            var userList = GetGroupMembers(tfsServer, tfsWorkStore, tfsProject, group, membershipQueryType);
+            if (userList == null)
+            {
+                return null;
+            }
+
             return userList.Select(t => new UserResource() { DisplayName = t.DisplayName, UniqueName = t.UniqueName, UniqueUserId = t.UniqueUserId }).ToList();
         }
 
@@ -444,7 +480,7 @@ namespace AddTaskToBacklogItems
             return groupList;
         }
 
-        private TeamFoundationIdentity[] GetGroupMembers(string tfsServer, string tfsWorkStore, string tfsProject, TeamFoundationIdentity group)
+        private TeamFoundationIdentity[] GetGroupMembers(string tfsServer, string tfsWorkStore, string tfsProject, TeamFoundationIdentity group, MembershipQuery membershipQueryType)
         {
             TfsTeamProjectCollection projectCollection = GetProjects(tfsServer, tfsWorkStore);
             IIdentityManagementService ims = projectCollection.GetService<IIdentityManagementService>();
@@ -452,7 +488,7 @@ namespace AddTaskToBacklogItems
             // group doesn't exist
             if (group == null) return null;
 
-            TeamFoundationIdentity groupIdentity = ims.ReadIdentity(IdentitySearchFactor.DisplayName, group.DisplayName, MembershipQuery.Expanded, ReadIdentityOptions.ExtendedProperties);
+            TeamFoundationIdentity groupIdentity = ims.ReadIdentity(IdentitySearchFactor.DisplayName, group.DisplayName, membershipQueryType, ReadIdentityOptions.ExtendedProperties);
 
             // there are no users
             if (groupIdentity.Members.Length == 0) return null;
@@ -461,7 +497,7 @@ namespace AddTaskToBacklogItems
             var groupMemberIdentifiers = groupIdentity.Members; // .Select(m => new Guid(m.Identifier)).ToArray<Guid>();
 
             // convert to a list
-            TeamFoundationIdentity[] tfia = ims.ReadIdentities(groupIdentity.Members, MembershipQuery.Expanded, ReadIdentityOptions.ExtendedProperties);
+            TeamFoundationIdentity[] tfia = ims.ReadIdentities(groupIdentity.Members, membershipQueryType, ReadIdentityOptions.ExtendedProperties);
             return tfia;
 
             //// Now flatten that list
