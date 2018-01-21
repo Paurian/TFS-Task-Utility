@@ -284,7 +284,7 @@ namespace AddTaskToBacklogItems
             List<StoryItem> storyItems = new List<StoryItem>();
             foreach (WorkItem workItem in workItemCollection)
             {
-                storyItems.Add(new StoryItem() { ID = workItem.Id, Title = workItem.Title });
+                storyItems.Add(new StoryItem() { ID = workItem.Id, Title = workItem.Title, IsSelected = true });
             }
             return storyItems;
         }
@@ -640,4 +640,5 @@ public class StoryItem
 {
     public int ID { get; set; }
     public string Title { get; set; }
+    public bool IsSelected { get; set; }
 }

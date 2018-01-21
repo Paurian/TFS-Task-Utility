@@ -6,13 +6,16 @@ using System.Threading.Tasks;
 using System.Configuration;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 
 namespace AddTaskToBacklogItems
 {
-    public class Settings : INotifyPropertyChanged
+    [DataContract]
+    public class Settings : ObservableObject
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        // public event PropertyChangedEventHandler PropertyChanged;
 
+        #region Constructors
         public Settings()
         {
             AppSettingsReader appSettings = new AppSettingsReader();
@@ -40,7 +43,70 @@ namespace AddTaskToBacklogItems
             TfsIteration = tfsIteration;
             // TfsIterationPath = tfsIterationPath;
         }
+        #endregion Constructors
 
+        #region Properties
+        #region Non-Serialized Properties
+        #region Read-Only Properties
+        public bool HasIterationValue { get { return !String.IsNullOrWhiteSpace(TfsIteration); } }
+        public bool HasProjectValue { get { return !String.IsNullOrWhiteSpace(TfsProject); } }
+        public bool HasAreaValue { get { return !String.IsNullOrWhiteSpace(TfsArea); } }
+        #endregion Read-Only Properties
+
+        private bool isVerified = false;
+        public bool IsVerified { get { return isVerified; } set { if (isVerified != value) { isVerified = value; NotifyPropertyChanged(); } } }
+        #endregion Non-Serialized Properties
+
+        [DataMember]
+        internal string tfsServer;
+        public string TfsServer { get { return tfsServer; } set { if (tfsServer != value) { tfsServer = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string tfsWorkStore;
+        public string TfsWorkStore { get { return tfsWorkStore; } set { if (tfsWorkStore != value) { tfsWorkStore = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string tfsProject;
+        public string TfsProject { get { return tfsProject; } set { if (tfsProject != value) { tfsProject = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string tfsArea;
+        public string TfsArea { get { return tfsArea; } set { if (tfsArea != value) { tfsArea = value; NotifyPropertyChanged(); } } }
+        // public string TfsAreaPath { get { return TfsProject + @"\" + TfsArea; } }
+
+        [DataMember]
+        internal string tfsIteration;
+        public string TfsIteration { get { return tfsIteration; } set { if (tfsIteration != value) { tfsIteration = value; /** TfsIterationPath = value; **/ NotifyPropertyChanged(); } } }
+
+        //private string tfsIterationPath = String.Empty;
+        //public string TfsIterationPath { get { return String.IsNullOrEmpty(tfsIterationPath) ? TfsAreaPath + @"\" + TfsIteration : tfsIterationPath; } set { tfsIterationPath = value; NotifyPropertyChanged(); } }
+
+        [DataMember]
+        internal string newTaskTitleTemplate;
+        public string NewTaskTitleTemplate { get { return newTaskTitleTemplate; } set { if (newTaskTitleTemplate != value) { newTaskTitleTemplate = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal int newTaskEstHours;
+        public string NewTaskEstHours { get { return newTaskEstHours.ToString(); } set { int _nteh = 0; int.TryParse(value, out _nteh); if (newTaskEstHours != _nteh) { newTaskEstHours = _nteh; NotifyPropertyChanged(); } } } // should we make this double: e.g. 0.25, 0.5, 1.0, 1.5?
+
+        [DataMember]
+        internal string newTaskAssignedTo;
+        public string NewTaskAssignedTo { get { return newTaskAssignedTo; } set { if (newTaskAssignedTo != value) { newTaskAssignedTo = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string newTaskActivityType;
+        public string NewTaskActivityType { get { return newTaskActivityType; } set { if (newTaskActivityType != value) { newTaskActivityType = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string newTaskExceptionFilter;
+        public string NewTaskExceptionFilter { get { return newTaskExceptionFilter; } set { if (newTaskExceptionFilter != value) { newTaskExceptionFilter = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string newTaskStoryExceptionFilter;
+        public string NewTaskStoryExceptionFilter { get { return newTaskStoryExceptionFilter; } set { if (newTaskStoryExceptionFilter != value) { newTaskStoryExceptionFilter = value; NotifyPropertyChanged(); } } }
+        #endregion Properties
+
+        #region Methods
         // This method is called by the Set accessor of each property.
         // The CallerMemberName attribute that is applied to the optional propertyName
         // parameter causes the property name of the caller to be substituted as an argument.
@@ -51,75 +117,30 @@ namespace AddTaskToBacklogItems
                 if (isVerified)
                 {
                     isVerified = false;
-                    PropertyChanged(this, new PropertyChangedEventArgs("IsVerified"));
+                    RaisePropertyChangedEvent("IsVerified");
                 }
             }
 
-            if (PropertyChanged != null)
+            switch (propertyName)
             {
-                switch (propertyName)
-                {
-                    case "TfsIteration":
-                        PropertyChanged(this, new PropertyChangedEventArgs("HasIterationValue"));
-                        break;
-                    case "TfsProject":
-                        PropertyChanged(this, new PropertyChangedEventArgs("HasProjectValue"));
-                        break;
-                    case "TfsArea":
-                        PropertyChanged(this, new PropertyChangedEventArgs("HasAreaValue"));
-                        break;
-                }
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                case "TfsIteration":
+                    RaisePropertyChangedEvent("HasIterationValue");
+                    break;
+                case "TfsProject":
+                    RaisePropertyChangedEvent("HasProjectValue");
+                    break;
+                case "TfsArea":
+                    RaisePropertyChangedEvent("HasAreaValue");
+                    break;
             }
+            RaisePropertyChangedEvent(propertyName);
         }
 
-        public bool HasIterationValue { get { return !String.IsNullOrWhiteSpace(TfsIteration); } }
-        public bool HasProjectValue { get { return !String.IsNullOrWhiteSpace(TfsProject); } }
-        public bool HasAreaValue { get { return !String.IsNullOrWhiteSpace(TfsArea); } }
-
-        private bool isVerified = false;
-        public bool IsVerified { get { return isVerified; } set { isVerified = value; NotifyPropertyChanged(); } }
-
-        private string tfsServerValue;
-        public string TfsServer { get { return tfsServerValue; } set { tfsServerValue = value; NotifyPropertyChanged(); } }
-
-        private string tfsWorkStoreValue;
-        public string TfsWorkStore { get { return tfsWorkStoreValue; } set { tfsWorkStoreValue = value; NotifyPropertyChanged(); } }
-
-        private string tfsProjectValue;
-        public string TfsProject { get { return tfsProjectValue; } set { tfsProjectValue = value; NotifyPropertyChanged(); } }
-
-        private string tfsAreaValue;
-        public string TfsArea { get { return tfsAreaValue; } set { tfsAreaValue = value; NotifyPropertyChanged(); } }
-        // public string TfsAreaPath { get { return TfsProject + @"\" + TfsArea; } }
-
+        // This method wraps the TFS area for the Group Member search.
         public string GetWrappedTfsArea()
         {
-            return tfsAreaValue?.Replace("Centracs\\", "[Centracs]\\");
+            return TfsArea?.Replace("Centracs\\", "[Centracs]\\");
         }
-
-        public string tfsIterationValue;
-        public string TfsIteration { get { return tfsIterationValue; } set { tfsIterationValue = value; /** TfsIterationPath = value; **/ NotifyPropertyChanged(); } }
-
-        //private string tfsIterationPath = String.Empty;
-        //public string TfsIterationPath { get { return String.IsNullOrEmpty(tfsIterationPath) ? TfsAreaPath + @"\" + TfsIteration : tfsIterationPath; } set { tfsIterationPath = value; NotifyPropertyChanged(); } }
-
-        private string newTaskTitleTemplateValue;
-        public string NewTaskTitleTemplate { get { return newTaskTitleTemplateValue; } set { newTaskTitleTemplateValue = value; NotifyPropertyChanged(); } }
-
-        int newTaskEstHoursValue;
-        public string NewTaskEstHours { get { return newTaskEstHoursValue.ToString(); } set { int.TryParse(value, out newTaskEstHoursValue); NotifyPropertyChanged(); } } // should we make this double: e.g. 0.25, 0.5, 1.0, 1.5?
-
-        private string newTaskAssignedToValue;
-        public string NewTaskAssignedTo { get { return newTaskAssignedToValue; } set { newTaskAssignedToValue = value; NotifyPropertyChanged(); } }
-
-        private string newTaskActivityTypeValue;
-        public string NewTaskActivityType { get { return newTaskActivityTypeValue; } set { newTaskActivityTypeValue = value; NotifyPropertyChanged(); } }
-
-        private string newTaskExceptionFilterValue;
-        public string NewTaskExceptionFilter { get { return newTaskExceptionFilterValue; } set { newTaskExceptionFilterValue = value; NotifyPropertyChanged(); } }
-
-        private string newTaskStoryExceptionFilterValue;
-        public string NewTaskStoryExceptionFilter { get { return newTaskStoryExceptionFilterValue; } set { newTaskStoryExceptionFilterValue = value; NotifyPropertyChanged(); } }
+        #endregion Methods
     }
 }

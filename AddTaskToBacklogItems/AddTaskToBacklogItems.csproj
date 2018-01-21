@@ -254,8 +254,12 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="CentracsAreaConverter.cs" />
+    <Compile Include="DelegateCommand.cs" />
+    <Compile Include="ObservableObject.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="SettingsViewModel.cs" />
     <Compile Include="TFSRepository.cs" />
+    <Compile Include="VisualTreeHelpers.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
