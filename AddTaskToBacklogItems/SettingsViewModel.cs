@@ -81,11 +81,31 @@ namespace AddTaskToBacklogItems
             get { return new DelegateCommand(RetrieveStoryItems); }
         }
 
+        public ICommand CreateTaskItemsCommand
+        {
+            get { return new DelegateCommand(CreateTaskItems); }
+        }
+
         private void RetrieveStoryItems()
         {
             var wis = _tfsRepository.GetWorkItemStore();
             var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings); //  settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter);
             StoryItems = new ObservableCollection<StoryItem>(_tfsRepository.GetStoryItems(wic));
+        }
+
+        private void CreateTaskItems()
+        {
+            if (Settings.IsVerified)
+            {
+                var wis = _tfsRepository.GetWorkItemStore();
+                var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings); // settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter);
+                var result = _tfsRepository.AddSQATaskToEachWorkItemInCollection(wis, wic, Settings, StoryItems.ToList());
+                if (result.Count > 0)
+                {
+                    ActionState = String.Format("{0} new tasks have been created.", result);
+                    Settings.IsVerified = false;
+                }
+            }
         }
 
         public ObservableCollection<string> Projects
@@ -159,6 +179,13 @@ namespace AddTaskToBacklogItems
                     break;
             }
 
+        }
+
+        private string _actionState;
+        public string ActionState
+        {
+            get { return _actionState; }
+            set { if ( _actionState != value) { _actionState = value; RaisePropertyChangedEvent("ActionState"); } }
         }
 
         public ObservableCollection<StoryItem> StoryItems

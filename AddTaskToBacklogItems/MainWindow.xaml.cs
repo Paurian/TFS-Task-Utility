@@ -39,30 +39,6 @@ namespace AddTaskToBacklogItems
             settingsViewModel = new SettingsViewModel();
             this.DataContext = settingsViewModel;
         }
-      
-        private void btnGo_Click(object sender, RoutedEventArgs e)
-        {
-            //// Settings settings = new Settings();
-            //// TFSRepository tfsRepository = new TFSRepository(settings);
-            //var wis = tfsRepository.GetWorkItemStore();
-            //var wic = tfsRepository.GetListOfBacklogItemsWithoutWork(wis, settings); // settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter);
-            //var result = tfsRepository.AddSQATaskToEachWorkItemInCollection(wis, wic, settings);
-            //if (result.Count > 0)
-            //{
-            //    // Show a modal dialog.
-            //    btnPreview_Click(null, null);
-            //}
-            //// tfsRepository.GetCurrentIterationPath(wis);
-        }
-
-        private void btnPreview_Click(object sender, RoutedEventArgs e)
-        {
-            //var wis = tfsRepository.GetWorkItemStore();
-            //var wic = tfsRepository.GetListOfBacklogItemsWithoutWork(wis, settings); //  settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter);
-            //StoryItems = tfsRepository.GetStoryItems(wic);
-            //// dataGridOfStoryItems.ItemsSource = sil;
-            //settings.IsVerified = (StoryItems.Count > 0);
-        }
 
         // https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/how-to-serialize-and-deserialize-json-data
         private void btnExport_Click(object sender, RoutedEventArgs e)
@@ -78,9 +54,7 @@ namespace AddTaskToBacklogItems
             {
                 string saveFilename = saveFileDialog.FileName;
                 FileStream serializedFileStream = new FileStream(saveFilename, FileMode.Create);
-                // MemoryStream serializedStream = new MemoryStream();
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Settings[]));
-                // serializer.WriteObject(serializedStream, settings);
                 Settings[] settingsArray = new Settings[] { settingsViewModel.Settings };
                 serializer.WriteObject(serializedFileStream, settingsArray);
             }
@@ -103,10 +77,10 @@ namespace AddTaskToBacklogItems
                     FileStream serializedFileStream = new FileStream(openFilename, FileMode.Open);
                     DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Settings[]));
                     var settingsArray = serializer.ReadObject(serializedFileStream);
+                    // Eventually we want to ask the user which setting in the set to use.
                     if (settingsArray != null && (settingsArray as Settings[]) != null && ((settingsArray as Settings[]).Count() > 0))
                     {
                         settingsViewModel.Settings = (settingsArray as Settings[])[0];
-                        // InitializeData();
                     }
                 }
                 catch (IOException exception)
@@ -121,7 +95,9 @@ namespace AddTaskToBacklogItems
             var chk = VisualTreeHelpers.FindAncestor<CheckBox>((DependencyObject)e.OriginalSource, "cbStoryItem");
 
             if (chk == null)
+            {
                 e.Handled = true;
+            }
         }
 
         private void cbStoryItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -137,12 +113,5 @@ namespace AddTaskToBacklogItems
             // DataGridPreviewMouseDown doesn't handle the event
             e.Handled = true;
         }
-
-        //private void InitializeComponent()
-        //{
-        //    TFSRepository tfsRepository = new TFSRepository();
-        //    var wis = tfsRepository.GetWorkItemStore();
-        //    tfsRepository.CreateTest(wis);
-        //}
     }
 }

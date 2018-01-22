@@ -211,9 +211,14 @@ namespace AddTaskToBacklogItems
 
             queryBuilder.AppendFormat("[Source].[System.State] <> 'Removed' AND " +
                                       "[Source].[System.IterationPath] UNDER '{0}' AND " +
-                                      "[Source].[System.State] <> 'Resolved' AND " +
-                                      GetCondition(settings.NewTaskStoryExceptionFilter, "[Source].[System.Title]", "NOT CONTAINS", "AND") + " AND " +
-                                      "[System.Links.LinkType] <> '' ", settings.TfsIteration);
+                                      "[Source].[System.State] <> 'Resolved' AND ", settings.TfsIteration);
+
+            if (!String.IsNullOrEmpty(settings.NewTaskStoryExceptionFilter))
+            {
+                queryBuilder.AppendFormat("{0} AND ", GetCondition(settings.NewTaskStoryExceptionFilter, "[Source].[System.Title]", "NOT CONTAINS", "AND"));
+            }
+
+            queryBuilder.Append("[System.Links.LinkType] <> '' ");
 
             if (!String.IsNullOrEmpty(settings.NewTaskExceptionFilter))
             {
@@ -348,7 +353,7 @@ namespace AddTaskToBacklogItems
             }
         }
 
-        public List<int> AddTaskToEachWorkItemInCollection(WorkItemStore workItemStore, WorkItemCollection workItemCollection, Settings settings, Delegate buildTaskMethod)
+        public List<int> AddTaskToEachWorkItemInCollection(WorkItemStore workItemStore, WorkItemCollection workItemCollection, Settings settings, Delegate buildTaskMethod, List<StoryItem> tasks)
         {
             Project teamProject = workItemStore.Projects[settings.TfsProject];
             WorkItemType taskWorkItemType = teamProject.WorkItemTypes["Task"];
@@ -358,16 +363,20 @@ namespace AddTaskToBacklogItems
 
             foreach (WorkItem workItem in workItemCollection)
             {
-                int taskId = (int)buildTaskMethod.DynamicInvoke(taskWorkItemType, workItem, settings, hierarchyWorkItemLinkTypeEnd);
-                newTaskIds.Add(taskId);
+                // Only create tasks if they're selected from our user.
+                if (tasks.Any(t => t.ID == workItem.Id && t.IsSelected))
+                {
+                    int taskId = (int)buildTaskMethod.DynamicInvoke(taskWorkItemType, workItem, settings, hierarchyWorkItemLinkTypeEnd);
+                    newTaskIds.Add(taskId);
+                }
             }
 
             return newTaskIds;
         }
 
-        public List<int> AddSQATaskToEachWorkItemInCollection(WorkItemStore workItemStore, WorkItemCollection workItemCollection, Settings settings)
+        public List<int> AddSQATaskToEachWorkItemInCollection(WorkItemStore workItemStore, WorkItemCollection workItemCollection, Settings settings, List<StoryItem> tasks)
         {
-            var result = AddTaskToEachWorkItemInCollection(workItemStore, workItemCollection, settings, new Func<WorkItemType, WorkItem, Settings, WorkItemLinkTypeEnd, int>(BuildAndSaveSQATask));
+            var result = AddTaskToEachWorkItemInCollection(workItemStore, workItemCollection, settings, new Func<WorkItemType, WorkItem, Settings, WorkItemLinkTypeEnd, int>(BuildAndSaveSQATask), tasks);
             settings.IsVerified = false;
             return result;
         }

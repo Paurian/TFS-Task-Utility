@@ -47,15 +47,16 @@
         <Label x:Name="lblBLIExceptionTitle" Content="Contains any of these&#xD;&#xA;substrings in its own title:" HorizontalAlignment="Left" Margin="18,259,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="tbBLIExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="167,261,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskStoryExceptionFilter}" VerticalAlignment="Top" Width="436" />
         <Button x:Name="btnPreview" Content="Preview List of Affected Backlog Items" HorizontalAlignment="Left" Margin="377,316,0,0" VerticalAlignment="Top" Width="226" Command="{Binding RetrieveStoryItemsCommand}" IsEnabled="{Binding Settings.HasIterationValue}"/>
-        <DataGrid x:Name="dataGridOfStoryItems" ItemsSource="{Binding StoryItems}" HorizontalAlignment="Left" Margin="10,341,0,0" Width="593" IsReadOnly="False" Height="154" VerticalAlignment="Top" SelectionMode="Extended" CanUserAddRows="False" PreviewMouseLeftButtonDown="dataGridOfStoryItems_PreviewMouseLeftButtonDown">
+        <DataGrid x:Name="dataGridOfStoryItems" ItemsSource="{Binding StoryItems}" AutoGenerateColumns="False" HorizontalAlignment="Left" Margin="10,341,0,0" Width="593" IsReadOnly="False" Height="154" VerticalAlignment="Top" SelectionMode="Extended" CanUserAddRows="False" PreviewMouseLeftButtonDown="dataGridOfStoryItems_PreviewMouseLeftButtonDown">
             <DataGrid.Columns>
                 <DataGridTemplateColumn>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <CheckBox x:Name="cbStoryItem" PreviewMouseLeftButtonDown="cbStoryItem_PreviewMouseLeftButtonDown" />
+                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" PreviewMouseLeftButtonDown="cbStoryItem_PreviewMouseLeftButtonDown" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTextColumn Width="*" Header="Backlog Item title" Binding="{Binding Title}"></DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
         <Label x:Name="lblHeaderTwo" Content="New Task Creation Properties:" HorizontalAlignment="Left" Margin="10,504,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
@@ -67,7 +68,7 @@
         <ComboBox x:Name="cbNewAssignedTo" ItemsSource="{Binding Resources}" SelectedItem="{Binding Settings.NewTaskAssignedTo, Mode=TwoWay}" HorizontalAlignment="Left" Margin="88,565,0,0" VerticalAlignment="Top" Width="251" />
         <Label x:Name="lblNewActivity" Content="Activity" HorizontalAlignment="Left" Margin="364,561,0,0" VerticalAlignment="Top" IsEnabled="False"/>
         <ComboBox x:Name="cbNewActivity" ItemsSource="{Binding Activities}" SelectedItem="{Binding Settings.NewTaskActivityType, Mode=TwoWay}" HorizontalAlignment="Left" Margin="419,565,0,0" VerticalAlignment="Top" Width="184" />
-        <Button x:Name="btnGo" Content="Create New Tasks" HorizontalAlignment="Left" Margin="461,615,0,0" VerticalAlignment="Top" Width="142" Click="btnGo_Click" IsEnabled="{Binding Settings.IsVerified}"/>
+        <Button x:Name="btnGo" Content="Create New Tasks" HorizontalAlignment="Left" Margin="461,615,0,0" VerticalAlignment="Top" Width="142" Command="{Binding CreateTaskItemsCommand}" IsEnabled="{Binding Settings.IsVerified}"/>
         <TextBlock x:Name="tblkHelp" HorizontalAlignment="Left" Margin="33,608,0,-27" TextWrapping="Wrap" Text="?" Cursor="Help" FontFamily="Segoe UI Black" FontSize="20" Width="27" VerticalAlignment="Top" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Hidden" Padding="9,0" Height="27"/>
         <Button x:Name="btnExport" Content="Export Settings" HorizontalAlignment="Left" Margin="344,615,0,0" VerticalAlignment="Top" Width="100" Click="btnExport_Click"/>
         <Button x:Name="btnImport" Content="Import Settings" HorizontalAlignment="Left" Margin="503,10,0,0" VerticalAlignment="Top" Width="100" Click="btnImport_Click"/>
