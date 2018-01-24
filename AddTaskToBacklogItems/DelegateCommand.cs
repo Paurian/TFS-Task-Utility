@@ -10,7 +10,7 @@ namespace AddTaskToBacklogItems
     public class DelegateCommand : ICommand
     {
         private readonly Predicate<object> _canExecute;
-        private readonly Action<object> _execute;
+        private readonly Action<object> _executeWithParameter;
         private readonly Action _executeNoParameters;
 
         public event EventHandler CanExecuteChanged;
@@ -25,13 +25,13 @@ namespace AddTaskToBacklogItems
             _canExecute = canExecute;
         }
 
-        public DelegateCommand(Action<object> execute) : this(execute, null)
+        public DelegateCommand(Action<object> executeWithParameter) : this(executeWithParameter, null)
         {
         }
 
-        public DelegateCommand(Action<object> execute, Predicate<object> canExecute)
+        public DelegateCommand(Action<object> executeWithParameter, Predicate<object> canExecute)
         {
-            _execute = execute;
+            _executeWithParameter = executeWithParameter;
             _canExecute = canExecute;
         }
 
@@ -47,9 +47,9 @@ namespace AddTaskToBacklogItems
 
         public virtual void Execute(object parameter)
         {
-            if (_execute != null)
+            if (_executeWithParameter != null)
             {
-                _execute(parameter);
+                _executeWithParameter(parameter);
             }
             else if (_executeNoParameters != null)
             {

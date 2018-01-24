@@ -7,6 +7,9 @@
         xmlns:Default="clr-namespace:AddTaskToBacklogItems"
         mc:Ignorable="d"
         Title="TFS Tool - Add Tasks To Backlog Stories" Height="688.815" Width="632.967">
+    <Window.DataContext>
+        <local:SettingsViewModel/>
+    </Window.DataContext>
     <Window.Resources>
         <local:CentracsAreaConverter x:Key="CentracsArea"></local:CentracsAreaConverter>
         <!-- We must do this because otherwise, the cursor vanishes when it hovers into the window. -->
@@ -31,6 +34,7 @@
     </Window.Resources>
     <Grid x:Name="TfsToolSettings" Cursor="None" Margin="0,0,2,-4">
         <Label x:Name="lblHeaderOne" Content="Target Team Foundation Server Backlog Release" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
+        <Button x:Name="btnImport" Content="Import Settings" HorizontalAlignment="Left" Margin="503,10,0,0" VerticalAlignment="Top" Width="100" Click="btnImport_Click"/>
         <Label x:Name="lblServerUri" Content="TFS Server" HorizontalAlignment="Left" Margin="18,34,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="tbServer" HorizontalAlignment="Left" Height="23" Margin="88,38,0,0" TextWrapping="Wrap" Text="{Binding Settings.TfsServer}" VerticalAlignment="Top" Width="515"/>
         <Label x:Name="lblWorkStore" Content="Work Store" HorizontalAlignment="Left" Margin="14,65,0,0" VerticalAlignment="Top"/>
@@ -52,7 +56,8 @@
                 <DataGridTemplateColumn>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" PreviewMouseLeftButtonDown="cbStoryItem_PreviewMouseLeftButtonDown" />
+                            <!-- Broken! How do I send a parameter? -->
+                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" CommandParameter="{Binding Path=SelectedItem, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -71,7 +76,6 @@
         <Button x:Name="btnGo" Content="Create New Tasks" HorizontalAlignment="Left" Margin="461,615,0,0" VerticalAlignment="Top" Width="142" Command="{Binding CreateTaskItemsCommand}" IsEnabled="{Binding Settings.IsVerified}"/>
         <TextBlock x:Name="tblkHelp" HorizontalAlignment="Left" Margin="33,608,0,-27" TextWrapping="Wrap" Text="?" Cursor="Help" FontFamily="Segoe UI Black" FontSize="20" Width="27" VerticalAlignment="Top" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Hidden" Padding="9,0" Height="27"/>
         <Button x:Name="btnExport" Content="Export Settings" HorizontalAlignment="Left" Margin="344,615,0,0" VerticalAlignment="Top" Width="100" Click="btnExport_Click"/>
-        <Button x:Name="btnImport" Content="Import Settings" HorizontalAlignment="Left" Margin="503,10,0,0" VerticalAlignment="Top" Width="100" Click="btnImport_Click"/>
         <TextBlock x:Name="tbErrorMessage" HorizontalAlignment="Left" Margin="61,615,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="274" Height="37" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
     </Grid>
 </Window>

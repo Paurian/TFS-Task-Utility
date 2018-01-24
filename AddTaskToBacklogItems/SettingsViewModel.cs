@@ -9,7 +9,7 @@ using System.Windows.Input;
 
 namespace AddTaskToBacklogItems
 {
-    class SettingsViewModel : ObservableObject
+    public class SettingsViewModel : ObservableObject
     {
         private Settings _settings;
         private TFSRepository _tfsRepository;
@@ -76,6 +76,7 @@ namespace AddTaskToBacklogItems
                                                                          Select(u => u.DisplayName).OrderBy(o => o).ToList());
         }
 
+        #region External Commands
         public ICommand RetrieveStoryItemsCommand
         {
             get { return new DelegateCommand(RetrieveStoryItems); }
@@ -86,11 +87,27 @@ namespace AddTaskToBacklogItems
             get { return new DelegateCommand(CreateTaskItems); }
         }
 
+        public ICommand ToggleStoryItemSelectionCommand
+        {
+            get { return new DelegateCommand(param => ToggleStoryItemSelection(param)); }
+        }
+        #endregion External Commands
+
         private void RetrieveStoryItems()
         {
             var wis = _tfsRepository.GetWorkItemStore();
             var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings); //  settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter);
             StoryItems = new ObservableCollection<StoryItem>(_tfsRepository.GetStoryItems(wic));
+            if (StoryItems.Count > 0)
+            {
+                Settings.IsVerified = true;
+            }
+        }
+
+        private void ToggleStoryItemSelection(object storyItem) // StoryItem is always null. Parameter isn't getting passed correctly.
+        {
+            ((StoryItem)storyItem).IsSelected = !((StoryItem)storyItem).IsSelected;
+            Settings.IsVerified = StoryItems.Where(s => s.IsSelected).Any();
         }
 
         private void CreateTaskItems()

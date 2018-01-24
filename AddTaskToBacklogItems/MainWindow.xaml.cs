@@ -23,21 +23,22 @@ namespace AddTaskToBacklogItems
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Settings settings;
-        private List<string> projects;
-        private List<string> areas;
-        private List<string> releases;
-        private List<string> resources; // Was List<UserResources>
-        private List<string> activities;
-        public List<StoryItem> StoryItems { get; set; }
+        //private Settings settings;
+        //private List<string> projects;
+        //private List<string> areas;
+        //private List<string> releases;
+        //private List<string> resources; // Was List<UserResources>
+        //private List<string> activities;
+        //public List<StoryItem> StoryItems { get; set; }
 
-        private SettingsViewModel settingsViewModel;
+        //private SettingsViewModel settingsViewModel;
 
         public MainWindow()
         {
             InitializeComponent();
-            settingsViewModel = new SettingsViewModel();
-            this.DataContext = settingsViewModel;
+            //settingsViewModel = new SettingsViewModel();
+            //this.DataContext = settingsViewModel;
+            //this.Resources.Add("data", settingsViewModel);
         }
 
         // https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/how-to-serialize-and-deserialize-json-data
@@ -55,8 +56,12 @@ namespace AddTaskToBacklogItems
                 string saveFilename = saveFileDialog.FileName;
                 FileStream serializedFileStream = new FileStream(saveFilename, FileMode.Create);
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Settings[]));
-                Settings[] settingsArray = new Settings[] { settingsViewModel.Settings };
-                serializer.WriteObject(serializedFileStream, settingsArray);
+                var dc = this.DataContext as SettingsViewModel;
+                if (dc != null)
+                {
+                    Settings[] settingsArray = new Settings[] { dc.Settings };
+                    serializer.WriteObject(serializedFileStream, settingsArray);
+                }
             }
         }
 
@@ -80,7 +85,11 @@ namespace AddTaskToBacklogItems
                     // Eventually we want to ask the user which setting in the set to use.
                     if (settingsArray != null && (settingsArray as Settings[]) != null && ((settingsArray as Settings[]).Count() > 0))
                     {
-                        settingsViewModel.Settings = (settingsArray as Settings[])[0];
+                        var dc = this.DataContext as SettingsViewModel;
+                        if (dc != null)
+                        {
+                            dc.Settings = (settingsArray as Settings[])[0];
+                        }
                     }
                 }
                 catch (IOException exception)
@@ -104,14 +113,17 @@ namespace AddTaskToBacklogItems
         {
             var chk = (CheckBox)sender;
             var row = VisualTreeHelpers.FindAncestor<DataGridRow>(chk);
-            var newValue = !chk.IsChecked.GetValueOrDefault();
+            //var newValue = !chk.IsChecked.GetValueOrDefault();
 
-            row.IsSelected = newValue;
-            chk.IsChecked = newValue;
+            //row.IsSelected = newValue;
+            //chk.IsChecked = newValue;
 
-            // Mark event as handled so that the default 
-            // DataGridPreviewMouseDown doesn't handle the event
-            e.Handled = true;
+            //// Only if there's something selected is the list verified that the "Create New Tasks" button may be enabled.
+            //settingsViewModel.Settings.IsVerified = settingsViewModel.StoryItems.Where(s => s.IsSelected).Any();
+
+            //// Mark event as handled so that the default 
+            //// DataGridPreviewMouseDown doesn't handle the event
+            //e.Handled = true;
         }
     }
 }
