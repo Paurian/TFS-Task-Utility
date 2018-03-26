@@ -22,6 +22,7 @@ namespace AddTaskToBacklogItems
             TfsServer = (string)appSettings.GetValue("TfsServer", typeof(string));
             TfsWorkStore = (string)appSettings.GetValue("TfsWorkStore", typeof(string));
             TfsProject = (string)appSettings.GetValue("TfsProject", typeof(string));
+            TfsBaseIterationQueryPath = (string)appSettings.GetValue("TfsBaseIterationQueryPath", typeof(string));
             TfsArea = (string)appSettings.GetValue("TfsArea", typeof(string));
             TfsIteration = (string)appSettings.GetValue("TfsIteration", typeof(string));
             // TfsIterationPath = (string)appSettings.GetValue("TfsIterationPath", typeof(string));
@@ -34,11 +35,12 @@ namespace AddTaskToBacklogItems
             NewTaskStoryExceptionFilter = (string)appSettings.GetValue("NewTaskStoryExceptionFilter", typeof(string));
         }
 
-        public Settings(string tfsServer, string tfsWorkStore, string tfsProject, string tfsArea, string tfsIteration) // , string tfsIterationPath)
+        public Settings(string tfsServer, string tfsWorkStore, string tfsProject, string tfsBaseIterationQueryPath, string tfsArea, string tfsIteration) // , string tfsIterationPath)
         {
             TfsServer = tfsServer;
             TfsWorkStore = tfsWorkStore;
             TfsProject = tfsProject;
+            TfsBaseIterationQueryPath = tfsBaseIterationQueryPath;
             TfsArea = tfsArea;
             TfsIteration = tfsIteration;
             // TfsIterationPath = tfsIterationPath;
@@ -68,6 +70,10 @@ namespace AddTaskToBacklogItems
         [DataMember]
         internal string tfsProject;
         public string TfsProject { get { return tfsProject; } set { if (tfsProject != value) { tfsProject = value; NotifyPropertyChanged(); } } }
+
+        [DataMember]
+        internal string tfsBaseIterationQueryPath;
+        public string TfsBaseIterationQueryPath { get { return tfsBaseIterationQueryPath;  } set { if (tfsBaseIterationQueryPath != value) { tfsBaseIterationQueryPath = value;  } } }
 
         [DataMember]
         internal string tfsArea;

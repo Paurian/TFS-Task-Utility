@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Configuration;
 using Microsoft.TeamFoundation.Client;
@@ -27,6 +28,7 @@ namespace AddTaskToBacklogItems
             this.settings = settings;
         }
 
+        // Cache This
         private TfsTeamProjectCollection GetProjects(string tfsServer, string tfsWorkStore)
         {
             UriBuilder tfsPath = new UriBuilder(tfsServer);
@@ -38,6 +40,16 @@ namespace AddTaskToBacklogItems
             return tpc;
         }
 
+        public Project GetProject(string tfsServer, string tfsWorkStore, string projectName)
+        {
+            var tpc = GetProjects(tfsServer, tfsWorkStore);
+            var workItemStore = new WorkItemStore(tpc);
+            var project = (from Project pr in workItemStore.Projects select pr).Where(p => p.Name == projectName).FirstOrDefault();
+
+            return project;
+        }
+
+        // Cache This
         public List<string> GetProjectNames(string tfsServer, string tfsWorkStore)
         {
             var tpc = GetProjects(tfsServer, tfsWorkStore);
@@ -55,6 +67,7 @@ namespace AddTaskToBacklogItems
 
             return GetRecursivePaths(tfsProject, teamProjectIterations);
         }
+
 
         // Cache This
         public List<string> GetIterationPaths(string tfsServer, string tfsWorkStore, string tfsProject, string areaPathFilter = "")
@@ -78,6 +91,66 @@ namespace AddTaskToBacklogItems
             // Unless activities are pulled from a custom field, they seem to be statically assigned and unchangable:
             return new List<string>() { "Deployment", "Design", "Development", "Documentation", "Requirements", "Testing" };
         }
+
+        // Cache This
+        public List<IterationItem> GetIterationsWithDates(string projectUrl)
+        {
+            ICommonStructureService4 css = GetCommonStructureService();
+            return css.GetIterationsWithDates(projectUrl).ToList();
+        }
+
+        //public List<ScheduleItem> GetRecursiveIterations(string tfsProject) // , NodeCollection nodeCollection)
+        //{
+        //    // Overhead to remove and make injectable
+        //    var strProjectCollection = "http://cstfs:8080/tfs/Engineering/Centracs/Sustaining";
+        //    var projCollection = TfsTeamProjectCollectionFactory.GetTeamProjectCollection(new Uri(strProjectCollection));
+        //    var WIS = projCollection.GetService<WorkItemStore>();
+        //    var teamProject = WIS.Projects["Centracs/Sustaining"]; // var project = GetProject(...)
+        //    // var nodeCollection = teamProject.IterationRootNodes;
+        //    ICommonStructureService4 css = GetCommonStructureService();
+
+        //    // Actual Code
+        //    var iterationResult = new List<ScheduleItem>();
+        //    NodeInfo[] structures = css.ListStructures(teamProject.Uri.ToString());
+        //    NodeInfo iterations = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectLifecycle"));
+        //    // NodeInfo areas = structures.FirstOrDefault(n => n.StructureType.Equals("?"));
+
+        //    // http://blogs.microsoft.co.il/shair/2009/01/30/tfs-api-part-9-get-areaiteration-programmatically/
+
+        //    if (iterations != null)
+        //    {
+        //        XmlElement iterationsTree = css.GetNodesXml(new[] { iterations.Uri }, true); // GetNodesXml allows access to attributes
+        //        // XmlElement areaTree = css.GetNodesXml(
+        //        XmlNodeList nodeList = iterationsTree.ChildNodes;
+
+        //        foreach (XmlNode node in nodeList)
+        //        {
+        //            var nodePath = tfsProject + "\\" + node.Name;
+
+        //            var idstr = node.Attributes["NodeID"].Value.Remove(0, "vstfs:///Classification/Node/".Length);
+        //            var id = new Guid(idstr);
+        //            string name = node.Attributes["Name"].Value;
+        //            string path = node.Attributes["Path"].Value;
+        //            DateTime startDate = DateTime.Parse(node.Attributes["StartDate"].Value, CultureInfo.InvariantCulture);
+        //            DateTime finishDate = DateTime.Parse(node.Attributes["FinishDate"].Value, CultureInfo.InvariantCulture);
+
+        //            // Found Iteration with start / end dates
+
+        //            //Console.WriteLine("{0} {1} {2}", name, startDate, finishDate);
+
+
+        //            iterationResult.Add(new ScheduleItem
+        //            {
+        //                Name = name,
+        //                Start = startDate,
+        //                Finish = finishDate,
+        //                Id = id,
+        //                Path = path
+        //            });
+        //        }
+        //    }
+        //    return iterationResult;
+        //}
 
         public List<string> GetRecursivePaths(string tfsProject, NodeCollection nodeCollection)
         {
@@ -186,6 +259,154 @@ namespace AddTaskToBacklogItems
             userStory.Save();
         }
 
+        public IterationItem GetCurrentIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        {
+            var collection = GetProjects(tfsServer, tfsWorkStore);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
+            return GetCurrentIteration(collection, css, project, baseIterationQueryPath);
+        }
+
+        public IterationItem GetNextIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        {
+            var collection = GetProjects(tfsServer, tfsWorkStore);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
+            return GetNextIteration(collection, css, project, baseIterationQueryPath);
+        }
+
+        public IterationItem GetPreviousIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        {
+            var collection = GetProjects(tfsServer, tfsWorkStore);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
+            return GetPreviousIteration(collection, css, project, baseIterationQueryPath);
+        }
+
+        public IterationItem GetCurrentIteration(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath)
+        {
+            return GetIterationOccurrence(collection, css, project, baseIterationQueryPath, IterationOccurrence.Current);
+        }
+
+        public IterationItem GetNextIteration(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath)
+        {
+            return GetIterationOccurrence(collection, css, project, baseIterationQueryPath, IterationOccurrence.Next);
+        }
+
+        public IterationItem GetPreviousIteration(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath)
+        {
+            return GetIterationOccurrence(collection, css, project, baseIterationQueryPath, IterationOccurrence.Prior);
+        }
+
+        private enum IterationOccurrence
+        {
+            Current,
+            Prior,
+            Next
+        }
+
+        private IterationItem GetIterationOccurrence(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath, IterationOccurrence iterationOccurrence)
+        {
+            var iterations = GetIterations(collection, css, project, baseIterationQueryPath);
+
+            var targetIteration = iterations.Where(i => i.StartDate.HasValue && i.StartDate.Value <= DateTime.Now &&
+                                                        i.FinishDate.HasValue && i.FinishDate.Value >= DateTime.Now).FirstOrDefault();
+            if (iterationOccurrence != IterationOccurrence.Current)
+            {
+                // If our offset is greater than 0, use the finish date. Otherwise, use the start date.
+                // This allows us to move across iterations, since the purpose of the 
+                DateTime offsetDate;
+                if (iterationOccurrence == IterationOccurrence.Next)
+                {
+                    offsetDate = targetIteration.FinishDate.Value.AddDays(4);
+                }
+                else
+                {
+                    offsetDate = targetIteration.StartDate.Value.AddDays(-4);
+                }
+                targetIteration = iterations.Where(i => i.StartDate <= offsetDate && i.FinishDate >= offsetDate).FirstOrDefault();
+            }
+
+            return targetIteration;
+        }
+
+        // How much of this was migrated / reimplimented in CSS4GetIterationsWithDatesExtension?
+        private List<IterationItem> GetIterations(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath)
+        {
+            TeamSettingsConfigurationService teamConfigService = collection.GetService<TeamSettingsConfigurationService>();
+            NodeInfo[] structures = css.ListStructures(project.Uri);
+            NodeInfo iterations = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectLifecycle"));
+            XmlElement iterationsTree = css.GetNodesXml(new[] { iterations.Uri }, true);
+
+            string baseName = ( baseIterationQueryPath ?? project.Name ) + @"\";
+            List<IterationItem> iterationResults = new List<IterationItem>();
+            BuildIterationTree(iterationsTree.ChildNodes[0].ChildNodes, baseName, iterationResults);
+
+            if (!String.IsNullOrEmpty(baseIterationQueryPath))
+            {
+                iterationResults.RemoveAll(i => !i.QueryPath.StartsWith(baseIterationQueryPath));
+            }
+            return iterationResults;
+        }
+
+        private void BuildIterationTree(XmlNodeList items, string baseName, List<IterationItem> iterations)
+        {
+            foreach (XmlNode node in items)
+            {
+                if (node.Attributes["NodeID"] != null &&
+                    node.Attributes["Name"] != null &&
+                    node.Attributes["StartDate"] != null &&
+                    node.Attributes["FinishDate"] != null)
+                {
+                    var idstr = node.Attributes["NodeID"].Value.Remove(0, "vstfs:///Classification/Node/".Length);
+                    var id = new Guid(idstr);
+                    string name = node.Attributes["Name"].Value;
+                    string path = node.Attributes["Path"].Value;
+                    DateTime startDate = DateTime.Parse(node.Attributes["StartDate"].Value, CultureInfo.InvariantCulture);
+                    DateTime finishDate = DateTime.Parse(node.Attributes["FinishDate"].Value, CultureInfo.InvariantCulture);
+
+                    // Found Iteration with start / end dates
+
+                    //Console.WriteLine("{0} {1} {2}", name, startDate, finishDate);
+                    iterations.Add(new IterationItem
+                    {
+                        Name = name,
+                        StartDate = startDate,
+                        FinishDate = finishDate,
+                        Id = id,
+                        Path = path
+                    });
+                }
+                else if (node.Attributes["Name"] != null)
+                {
+                    string name = node.Attributes["Name"].Value;
+
+                    // Found Iteration without start / end dates
+                }
+
+                if (node.ChildNodes.Count > 0)
+                {
+                    string name = baseName;
+                    if (node.Attributes["Name"] != null)
+                    {
+                        name += node.Attributes["Name"].Value + @"\";
+                    }
+
+                    BuildIterationTree(node.ChildNodes, name, iterations);
+                }
+            }
+        }
+
+        //TODO: GetListOfBacklogItemsWithoutAcceptanceCriteria
+        //public WorkItemCollection GetListOfBacklogItemsWithoutAcceptanceCriteria(WorkItemStore workItemStore, Settings settings)
+        //{
+        //}
+
+        //TODO: GetListOfWorkTasksWithoutNotes - returns BLI/BUG name with it.
+        //public WorkItemCollection GetListOfTaskItemsWithoutNotes(WorkItemStore workItemStore, Settings settings)
+        //{
+        //}
+
         public WorkItemCollection GetListOfBacklogItemsWithoutWork(WorkItemStore workItemStore, Settings settings) // string tfsAreaPath, string tfsIterationPath, string newTaskExceptionFilterValue, string newTaskStoryExceptionFilterValue) settings.TfsArea, settings.TfsIteration, settings.NewTaskExceptionFilter, settings.NewTaskStoryExceptionFilter
         {
             // https://msdn.microsoft.com/en-us/library/bb130306(v=vs.120).aspx
@@ -199,7 +420,7 @@ namespace AddTaskToBacklogItems
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.Append("SELECT " +
                                   "[System.Id], [System.Links.LinkType], [System.WorkItemType], [System.Title], [System.AssignedTo], [System.State], [System.Tags] " +
-                                "FROM " + 
+                                "FROM " +
                                   "WorkItemLinks " +
                                 "WHERE " +
                                   "[Source].[System.WorkItemType] IN ('Bug', 'Product Backlog Item') AND ");
@@ -307,6 +528,7 @@ namespace AddTaskToBacklogItems
 
             SetWorkItemFieldValue(sqaTask, "Activity", settings.NewTaskActivityType);
             SetWorkItemFieldValue(sqaTask, "Estimated Hours", settings.NewTaskEstHours);
+            SetWorkItemFieldValue(sqaTask, "Remaining Work", settings.NewTaskEstHours);
             SetWorkItemFieldValue(sqaTask, "Assigned To", settings.NewTaskAssignedTo);
 
             // Make this item a child of the parentWorkItem:

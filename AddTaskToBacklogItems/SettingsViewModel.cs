@@ -29,6 +29,23 @@ namespace AddTaskToBacklogItems
 
             Activities = new ObservableCollection<string>(_tfsRepository.GetActivities());
             RetrieveAllSettingDependents();
+
+            // Get current/next/prev if the request is in the settings.
+            if (Settings.TfsIteration.ToLower() == "{current}")
+            {
+                var iteration = _tfsRepository.GetCurrentIteration(Settings.TfsServer, Settings.TfsWorkStore, Settings.TfsProject, Settings.TfsBaseIterationQueryPath);
+                Settings.TfsIteration = iteration.QueryPath;
+            }
+            else if (Settings.TfsIteration.ToLower() == "{next}")
+            {
+                var iteration = _tfsRepository.GetNextIteration(Settings.TfsServer, Settings.TfsWorkStore, Settings.TfsProject, Settings.TfsBaseIterationQueryPath);
+                Settings.TfsIteration = iteration.QueryPath;
+            }
+            else if (Settings.TfsIteration.ToLower() == "{prior}" || Settings.TfsIteration.ToLower() == "{prev}" || Settings.TfsIteration.ToLower() == "{previous}")
+            {
+                var iteration = _tfsRepository.GetPreviousIteration(Settings.TfsServer, Settings.TfsWorkStore, Settings.TfsProject, Settings.TfsBaseIterationQueryPath);
+                Settings.TfsIteration = iteration.QueryPath;
+            }
         }
 
         void SettingsViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)

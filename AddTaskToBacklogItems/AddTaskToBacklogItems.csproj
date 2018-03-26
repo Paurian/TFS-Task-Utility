@@ -254,7 +254,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="CentracsAreaConverter.cs" />
+    <Compile Include="CSS4GetIterationsWithDatesExtension.cs" />
     <Compile Include="DelegateCommand.cs" />
+    <Compile Include="IterationItem.cs" />
     <Compile Include="ObservableObject.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="SettingsViewModel.cs" />

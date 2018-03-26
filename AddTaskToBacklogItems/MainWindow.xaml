@@ -47,7 +47,7 @@
         <ComboBox x:Name="cbRelease" ItemsSource="{Binding Iterations}" SelectedItem="{Binding Settings.TfsIteration, Mode=TwoWay}" HorizontalAlignment="Left" Margin="88,126,0,0" VerticalAlignment="Top" Width="515" />
         <Label x:Name="lblHeaderThree" Content="Tasks won't be created for project backlog items that match any of these criteria&#xD;&#xA;(separate multiple criteria with commas - E.G. Investigate, Meeting, Plan):" HorizontalAlignment="Left" Margin="10,162,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
         <Label x:Name="lblExceptionTitle" Content="Contains tasks with any of&#xD;&#xA;these substrings in their titles:" HorizontalAlignment="Left" Margin="18,207,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="195,209,0,0" TextWrapping="Wrap" Text="{Binding NewTaskExceptionFilter}" VerticalAlignment="Top" Width="408" />
+        <TextBox x:Name="tbExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="195,209,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskExceptionFilter}" VerticalAlignment="Top" Width="408" />
         <Label x:Name="lblBLIExceptionTitle" Content="Contains any of these&#xD;&#xA;substrings in its own title:" HorizontalAlignment="Left" Margin="18,259,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="tbBLIExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="167,261,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskStoryExceptionFilter}" VerticalAlignment="Top" Width="436" />
         <Button x:Name="btnPreview" Content="Preview List of Affected Backlog Items" HorizontalAlignment="Left" Margin="377,316,0,0" VerticalAlignment="Top" Width="226" Command="{Binding RetrieveStoryItemsCommand}" IsEnabled="{Binding Settings.HasIterationValue}"/>
@@ -57,7 +57,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <!-- Broken! How do I send a parameter? -->
-                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" CommandParameter="{Binding Path=SelectedItem, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" CommandParameter="{Binding Path=SelectedItem, ElementName=dataGridOfStoryItems}" Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
