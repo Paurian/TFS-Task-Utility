@@ -52,9 +52,14 @@ namespace AddTaskToBacklogItems
         // Cache This
         public List<string> GetProjectNames(string tfsServer, string tfsWorkStore)
         {
-            var tpc = GetProjects(tfsServer, tfsWorkStore);
-            var workItemStore = new WorkItemStore(tpc);
-            var projectList = (from Project pr in workItemStore.Projects select pr.Name).ToList();
+            // The following code even lists projects that are inaccessible
+            //var tpc = GetProjects(tfsServer, tfsWorkStore);
+            //var workItemStore = new WorkItemStore(tpc);
+            //var projectList = (from Project pr in workItemStore.Projects select pr.Name).ToList();
+
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var projectList = css.ListAllProjects().Select(p => p.Name).ToList();
+            projectList.Sort(); // Order the projects by name
 
             return projectList;
         }
@@ -68,22 +73,105 @@ namespace AddTaskToBacklogItems
             return GetRecursivePaths(tfsProject, teamProjectIterations);
         }
 
-
-        // Cache This
-        public List<string> GetIterationPaths(string tfsServer, string tfsWorkStore, string tfsProject, string areaPathFilter = "")
+        public List<string> GetTeamNames(TfsTeamProjectCollection tfsTeamProjectCollection, string projectName)
         {
-            var workItemStore = GetWorkItemStore(tfsServer, tfsWorkStore);
-            var teamProjectIterations = workItemStore.Projects[tfsProject].IterationRootNodes;
+            List<string> result = new List<string>();
 
-            var iterationPaths = GetRecursivePaths(tfsProject, teamProjectIterations);
+            TfsTeamService ts = tfsTeamProjectCollection.GetService<TfsTeamService>();
+            var teams = ts.QueryTeams(projectName);
+            var teamNames = teams.Select(t => t.Name).ToList();
+            teamNames.Sort();
+            return teamNames;
+        }
 
-            if (!String.IsNullOrEmpty(areaPathFilter))
+        public List<string> GetTeams(string tfsServer, string tfsWorkStore, string tfsProject)
+        {
+            var tfsTeamProjectCollection = GetProjects(tfsServer, tfsWorkStore);
+            return GetTeamNames(tfsTeamProjectCollection, tfsProject);
+        }
+
+        public string GetTeamPath(TfsTeamProjectCollection tfsTeamProjectCollection, string projectName, string teamName)
+        {
+            string teamPath = String.Empty;
+            TfsTeamService ts = tfsTeamProjectCollection.GetService<TfsTeamService>();
+            var team = ts.QueryTeams(projectName).FirstOrDefault(t => t.Name == teamName);
+            if (team != null)
             {
-                iterationPaths = iterationPaths.Where(ip => ip.StartsWith(areaPathFilter, StringComparison.OrdinalIgnoreCase) || areaPathFilter.StartsWith(ip, StringComparison.OrdinalIgnoreCase)).ToList();
+                var teamsConfig = tfsTeamProjectCollection.GetService<TeamSettingsConfigurationService>();
+                var teamSettings = teamsConfig.GetTeamConfigurations(new List<Guid> { team.Identity.TeamFoundationId }).FirstOrDefault();
+                teamPath = teamSettings.ProjectUri;
+            }
+            return teamPath;
+        }
+
+        public List<IterationItem> GetIterationsFromTeam(string tfsServer, string tfsWorkStore, string projectName, string teamName)
+        {
+            var tfsTeamProjectCollection = GetProjects(tfsServer, tfsWorkStore);
+            var projectInfo = GetProjectInfo(tfsServer, tfsWorkStore, projectName);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            return GetIterationsFromTeam(tfsTeamProjectCollection, css, projectInfo, teamName);
+        }
+
+        public List<IterationItem> GetIterationsFromTeam(TfsTeamProjectCollection tfsTeamProjectCollection, ICommonStructureService4 css, ProjectInfo projectInfo, string teamName)
+        {
+            List<string> iterations = GetIterationPathsFromTeam(tfsTeamProjectCollection, projectInfo.Name, teamName);
+            return css.GetIterationsWithDates(projectInfo.Uri).Where(i => iterations.Contains(i.QueryPath)).ToList();
+        }
+
+        public List<string> GetIterationPathsFromTeamSortedByDate(string tfsServer, string tfsWorkStore, string projectName, string teamName, bool descending = true)
+        {
+            List<IterationItem> iterations = GetIterationsFromTeam(tfsServer, tfsWorkStore, projectName, teamName);
+            List<string> iterationPaths = new List<string>();
+            if (descending)
+            {
+                iterationPaths = iterations.OrderByDescending(i => i.StartDate).Select(i => i.QueryPath).ToList();
+            }
+            else
+            {
+                iterationPaths = iterations.OrderBy(i => i.StartDate).Select(i => i.QueryPath).ToList();
             }
 
             return iterationPaths;
         }
+
+        // TODO: Cache This per project/team if the interface is too slow.
+        public List<string> GetIterationPathsFromTeam(TfsTeamProjectCollection tfsTeamProjectCollection, string projectName, string tfsTeam = "")
+        {
+            List<string> result = new List<string>();
+
+            TfsTeamService ts = tfsTeamProjectCollection.GetService<TfsTeamService>();
+            var team = ts.QueryTeams(projectName).FirstOrDefault(t => t.Name == tfsTeam) ?? ts.QueryTeams(projectName).FirstOrDefault(t => t.Name == String.Empty) ?? ts.QueryTeams(projectName).FirstOrDefault();
+            if (team != null)
+            {
+                var teamsConfig = tfsTeamProjectCollection.GetService<TeamSettingsConfigurationService>();
+                var teamsSettings = teamsConfig.GetTeamConfigurations(new List<Guid> { team.Identity.TeamFoundationId });
+                foreach (var teamSettings in teamsSettings)
+                {
+                    result.AddRange(teamSettings.TeamSettings.IterationPaths);
+                }
+            }
+            // The empty node, in case there is an iteration without team assignment (??)
+            result.Insert(0, String.Empty);
+
+            return result;
+        }
+
+        // TODO: Cache This
+        // TODO: Make this work from the team instead of the areaPathFilter
+        //public List<string> GetIterationPaths(string tfsServer, string tfsWorkStore, string tfsProject, string areaPathFilter = "")
+        //{
+        //    var workItemStore = GetWorkItemStore(tfsServer, tfsWorkStore);
+        //    var teamProjectIterations = workItemStore.Projects[tfsProject].IterationRootNodes;
+
+        //    var iterationPaths = GetRecursivePaths(tfsProject, teamProjectIterations);
+
+        //    if (!String.IsNullOrEmpty(areaPathFilter))
+        //    {
+        //        iterationPaths = iterationPaths.Where(ip => ip.StartsWith(areaPathFilter, StringComparison.OrdinalIgnoreCase) || areaPathFilter.StartsWith(ip, StringComparison.OrdinalIgnoreCase)).ToList();
+        //    }
+
+        //    return iterationPaths;
+        //}
 
         // Cache This
         public List<string> GetActivities()
@@ -95,7 +183,7 @@ namespace AddTaskToBacklogItems
         // Cache This
         public List<IterationItem> GetIterationsWithDates(string projectUrl)
         {
-            ICommonStructureService4 css = GetCommonStructureService();
+            ICommonStructureService4 css = GetCommonStructureServiceFromSettings();
             return css.GetIterationsWithDates(projectUrl).ToList();
         }
 
@@ -226,7 +314,7 @@ namespace AddTaskToBacklogItems
             return teamProjectCollection.GetService<TeamSettingsConfigurationService>();
         }
 
-        public ICommonStructureService4 GetCommonStructureService()
+        public ICommonStructureService4 GetCommonStructureServiceFromSettings()
         {
             return GetCommonStructureService(settings.TfsServer, settings.TfsWorkStore);
         }
@@ -259,28 +347,39 @@ namespace AddTaskToBacklogItems
             userStory.Save();
         }
 
-        public IterationItem GetCurrentIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        private ProjectInfo GetProjectInfoFromSettings(string projectName)
         {
-            var collection = GetProjects(tfsServer, tfsWorkStore);
-            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
-            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
-            return GetCurrentIteration(collection, css, project, baseIterationQueryPath);
+            return GetProjectInfo(settings.TfsServer, settings.TfsWorkStore, projectName);
         }
 
-        public IterationItem GetNextIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        private ProjectInfo GetProjectInfo(string tfsServer, string tfsWorkStore, string projectName)
         {
-            var collection = GetProjects(tfsServer, tfsWorkStore);
             var css = GetCommonStructureService(tfsServer, tfsWorkStore);
-            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
-            return GetNextIteration(collection, css, project, baseIterationQueryPath);
+            return css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
         }
 
-        public IterationItem GetPreviousIteration(string tfsServer, string tfsWorkStore, string projectName, string baseIterationQueryPath)
+        public IterationItem GetCurrentIteration(string tfsServer, string tfsWorkStore, string projectName, string teamName)
         {
             var collection = GetProjects(tfsServer, tfsWorkStore);
             var css = GetCommonStructureService(tfsServer, tfsWorkStore);
             var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
-            return GetPreviousIteration(collection, css, project, baseIterationQueryPath);
+            return GetCurrentIteration(collection, css, project, teamName);
+        }
+
+        public IterationItem GetNextIteration(string tfsServer, string tfsWorkStore, string projectName, string teamName)
+        {
+            var collection = GetProjects(tfsServer, tfsWorkStore);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
+            return GetNextIteration(collection, css, project, teamName);
+        }
+
+        public IterationItem GetPreviousIteration(string tfsServer, string tfsWorkStore, string projectName, string teamName)
+        {
+            var collection = GetProjects(tfsServer, tfsWorkStore);
+            var css = GetCommonStructureService(tfsServer, tfsWorkStore);
+            var project = css.ListAllProjects().Where(p => p.Name == projectName).FirstOrDefault();
+            return GetPreviousIteration(collection, css, project, teamName);
         }
 
         public IterationItem GetCurrentIteration(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath)
@@ -305,12 +404,12 @@ namespace AddTaskToBacklogItems
             Next
         }
 
-        private IterationItem GetIterationOccurrence(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string baseIterationQueryPath, IterationOccurrence iterationOccurrence)
+        private IterationItem GetIterationOccurrence(TfsTeamProjectCollection tfsTeamProjectCollection, ICommonStructureService4 css, ProjectInfo projectInfo, string teamName, IterationOccurrence iterationOccurrence)
         {
-            var iterations = GetIterations(collection, css, project, baseIterationQueryPath);
-
+            var iterations = GetIterationsFromTeam(tfsTeamProjectCollection, css, projectInfo, teamName);
             var targetIteration = iterations.Where(i => i.StartDate.HasValue && i.StartDate.Value <= DateTime.Now &&
-                                                        i.FinishDate.HasValue && i.FinishDate.Value >= DateTime.Now).FirstOrDefault();
+                                                        i.FinishDate.HasValue && i.FinishDate.Value >= DateTime.Now.Date).FirstOrDefault();
+
             if (iterationOccurrence != IterationOccurrence.Current)
             {
                 // If our offset is greater than 0, use the finish date. Otherwise, use the start date.
@@ -327,7 +426,90 @@ namespace AddTaskToBacklogItems
                 targetIteration = iterations.Where(i => i.StartDate <= offsetDate && i.FinishDate >= offsetDate).FirstOrDefault();
             }
 
+            if (targetIteration == null)
+            {
+                // get the latest iteration in the list
+                targetIteration = iterations.OrderByDescending(i => i.FinishDate).FirstOrDefault();
+            }
+
             return targetIteration;
+        }
+
+        private List<string> GetTeamNames(TfsTeamProjectCollection teamProjectCollection, ProjectInfo project, NodeInfo area)
+        {
+            List<string> result = new List<string>();
+
+            TfsTeamService ts = teamProjectCollection.GetService<TfsTeamService>();
+            var teams = ts.QueryTeams(project.Name);
+            var teamsConfig = teamProjectCollection.GetService<TeamSettingsConfigurationService>();
+            foreach (TeamFoundationTeam team in teams)
+            {
+                var teamsSettings = teamsConfig.GetTeamConfigurations(new List<Guid> { team.Identity.TeamFoundationId });
+                foreach (var teamSettings in teamsSettings)
+                {
+                    foreach (var item in teamSettings.TeamSettings.TeamFieldValues)
+                    {
+                        if (item.Value == area.Path)
+                        {
+                            result.Add(team.Name);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private string GetTeamPath(TfsTeamProjectCollection tfsTeamProjectCollection, ProjectInfo projectInfo, string teamName)
+        {
+            string teamPath = String.Empty;
+            List<string> result = new List<string>();
+
+            TfsTeamService ts = tfsTeamProjectCollection.GetService<TfsTeamService>();
+            var team = ts.QueryTeams(projectInfo.Name).Where(t => t.Name == teamName).FirstOrDefault();
+
+            if (team != null)
+            {
+                var teamConfig = tfsTeamProjectCollection.GetService<TeamSettingsConfigurationService>();
+                var teamSettings = teamConfig.GetTeamConfigurations(new List<Guid> { team.Identity.TeamFoundationId });
+                // teamPath = teamSettings
+            }
+            //foreach (TeamFoundationTeam team in teams)
+            //{
+            //    var teamsSettings = teamsConfig.GetTeamConfigurations(new List<Guid> { team.Identity.TeamFoundationId });
+            //    foreach (var teamSettings in teamsSettings)
+            //    {
+            //        foreach (var item in teamSettings.TeamSettings.TeamFieldValues)
+            //        {
+            //            result.Add(item.Value);
+            //        }
+            //    }
+            //}
+
+            return teamPath;
+        }
+
+        private List<IterationItem> GetIterationsForProjectTeam(TfsTeamProjectCollection collection, ICommonStructureService4 css, ProjectInfo project, string teamName)
+        {
+            TeamSettingsConfigurationService teamConfigService = collection.GetService<TeamSettingsConfigurationService>();
+            NodeInfo[] structures = css.ListStructures(project.Uri);
+            NodeInfo areas = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectModelHierarchy"));
+            NodeInfo iterations = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectLifecycle"));
+            XmlElement iterationsTree = css.GetNodesXml(new[] { iterations.Uri }, true);
+
+            var rslt = GetIterationsFromTeam(collection, css, project, teamName);
+
+            string baseIterationQueryPath = GetTeamPath(collection, project, teamName);
+
+            string baseName = (baseIterationQueryPath ?? project.Name) + @"\";
+            List<IterationItem> iterationResults = new List<IterationItem>();
+            BuildIterationTree(iterationsTree.ChildNodes[0].ChildNodes, baseName, iterationResults);
+
+            if (!String.IsNullOrEmpty(baseIterationQueryPath))
+            {
+                iterationResults.RemoveAll(i => !i.QueryPath.StartsWith(baseIterationQueryPath));
+            }
+            return iterationResults;
         }
 
         // How much of this was migrated / reimplimented in CSS4GetIterationsWithDatesExtension?
@@ -335,10 +517,18 @@ namespace AddTaskToBacklogItems
         {
             TeamSettingsConfigurationService teamConfigService = collection.GetService<TeamSettingsConfigurationService>();
             NodeInfo[] structures = css.ListStructures(project.Uri);
+            NodeInfo areas = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectModelHierarchy"));
             NodeInfo iterations = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectLifecycle"));
             XmlElement iterationsTree = css.GetNodesXml(new[] { iterations.Uri }, true);
 
-            string baseName = ( baseIterationQueryPath ?? project.Name ) + @"\";
+            var teamName = GetTeamNames(collection, project.Name);
+            var iwd = css.GetIterationsWithDates(project.Uri);  // Flat-out Project Node.
+            // var gi = css.GetIterationsWithDates(iterations.Uri); // Project Life Cycle Structure Node.
+            // Team Node
+            var tp = GetTeamPath(collection, project, "Sustaining");
+            var tpi = css.GetIterationsWithDates(tp);
+
+            string baseName = (baseIterationQueryPath ?? project.Name) + @"\";
             List<IterationItem> iterationResults = new List<IterationItem>();
             BuildIterationTree(iterationsTree.ChildNodes[0].ChildNodes, baseName, iterationResults);
 
@@ -412,9 +602,26 @@ namespace AddTaskToBacklogItems
             // https://msdn.microsoft.com/en-us/library/bb130306(v=vs.120).aspx
             // https://stackoverflow.com/questions/9266437/tfs-api-how-to-fetch-work-items-from-specific-team-project
             // http://blogs.microsoft.co.il/shair/2010/11/18/tfs-api-part-31-working-with-queries-part-2/
+
+            if (String.IsNullOrEmpty(settings.tfsProject))
+            {
+                throw new ArgumentException("Project may not be empty or null");
+            }
+
+            // Get the area based on the project/team.
+            // If that doesn't construct into an area, get just the project's area.
+            var tfsArea = String.Format("{0}\\{1}", settings.TfsProject, settings.TfsTeam);
+            var projectAreas = GetAreas(settings.TfsServer, settings.TfsWorkStore, settings.TfsProject);
+            if (!projectAreas.Contains(tfsArea))
+            {
+                tfsArea = settings.TfsProject;
+            }
+
+            var tfsIteration = settings.TfsIteration;
+
             if (String.IsNullOrEmpty(settings.TfsIteration))
             {
-                throw new ArgumentException("tfsIteration may not be empty or null");
+                tfsIteration = settings.TfsProject;
             }
 
             StringBuilder queryBuilder = new StringBuilder();
@@ -425,14 +632,14 @@ namespace AddTaskToBacklogItems
                                 "WHERE " +
                                   "[Source].[System.WorkItemType] IN ('Bug', 'Product Backlog Item') AND ");
 
-            if (!String.IsNullOrEmpty(settings.TfsArea))
+            if (!String.IsNullOrEmpty(tfsArea))
             {
-                queryBuilder.AppendFormat("[Source].[System.AreaPath] UNDER '{0}' AND ", settings.TfsArea);
+                queryBuilder.AppendFormat("[Source].[System.AreaPath] UNDER '{0}' AND ", tfsArea); // Either use "=" or "UNDER" for the comparison
             }
 
             queryBuilder.AppendFormat("[Source].[System.State] <> 'Removed' AND " +
-                                      "[Source].[System.IterationPath] UNDER '{0}' AND " +
-                                      "[Source].[System.State] <> 'Resolved' AND ", settings.TfsIteration);
+                                      "[Source].[System.IterationPath] = '{0}' AND " +
+                                      "[Source].[System.State] <> 'Resolved' AND ", tfsIteration);
 
             if (!String.IsNullOrEmpty(settings.NewTaskStoryExceptionFilter))
             {
@@ -626,7 +833,7 @@ namespace AddTaskToBacklogItems
             }
 
             var teamProjectArea = workItemStore.Projects[settings.TfsProject].AreaRootNodes[settings.TfsArea];
-            var css = GetCommonStructureService();
+            var css = GetCommonStructureServiceFromSettings();
             var structures = css.ListStructures(teamProjectArea.Uri.ToString());
             var iterations = structures.FirstOrDefault(n => n.StructureType.Equals("ProjectLifecycle"));
             var iterationsTree = css.GetNodesXml(new[] { iterations.Uri }, true);
@@ -858,18 +1065,31 @@ namespace AddTaskToBacklogItems
             //workItem.Save();
         }
     }
-}
 
-public class UserResource
-{
-    public string DisplayName { get; set; }
-    public string UniqueName { get; set; }
-    public int UniqueUserId { get; set; }
-}
+    public class UserResource
+    {
+        public string DisplayName { get; set; }
+        public string UniqueName { get; set; }
+        public int UniqueUserId { get; set; }
+    }
 
-public class StoryItem
-{
-    public int ID { get; set; }
-    public string Title { get; set; }
-    public bool IsSelected { get; set; }
+    public class StoryItem : ObservableObject
+    {
+        public int ID { get; set; }
+        public string Title { get; set; }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    RaisePropertyChangedEvent("IsSelected");
+                }
+            }
+        }
+    }
 }

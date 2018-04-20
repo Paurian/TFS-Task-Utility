@@ -79,16 +79,18 @@ namespace AddTaskToBacklogItems
                 string openFilename = openFileDialog.FileName;
                 try
                 {
-                    FileStream serializedFileStream = new FileStream(openFilename, FileMode.Open);
-                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Settings[]));
-                    var settingsArray = serializer.ReadObject(serializedFileStream);
-                    // Eventually we want to ask the user which setting in the set to use.
-                    if (settingsArray != null && (settingsArray as Settings[]) != null && ((settingsArray as Settings[]).Count() > 0))
+                    using (FileStream serializedFileStream = new FileStream(openFilename, FileMode.Open))
                     {
-                        var dc = this.DataContext as SettingsViewModel;
-                        if (dc != null)
+                        DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Settings[]));
+                        var settingsArray = serializer.ReadObject(serializedFileStream);
+                        // Eventually we want to ask the user which setting in the set to use.
+                        if (settingsArray != null && (settingsArray as Settings[]) != null && ((settingsArray as Settings[]).Count() > 0))
                         {
-                            dc.Settings = (settingsArray as Settings[])[0];
+                            var dc = this.DataContext as SettingsViewModel;
+                            if (dc != null)
+                            {
+                                dc.Settings = (settingsArray as Settings[])[0];
+                            }
                         }
                     }
                 }
@@ -103,10 +105,10 @@ namespace AddTaskToBacklogItems
         {
             var chk = VisualTreeHelpers.FindAncestor<CheckBox>((DependencyObject)e.OriginalSource, "cbStoryItem");
 
-            if (chk == null)
-            {
-                e.Handled = true;
-            }
+            //if (chk == null)
+            //{
+            //    e.Handled = true;
+            //}
         }
 
         private void cbStoryItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

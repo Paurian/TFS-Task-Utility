@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:AddTaskToBacklogItems"
         xmlns:Default="clr-namespace:AddTaskToBacklogItems"
         mc:Ignorable="d"
-        Title="TFS Tool - Add Tasks To Backlog Stories" Height="688.815" Width="632.967">
+        Title="TFS Tool - Add Tasks To Backlog Stories" Height="688.815" Width="620.967">
     <Window.DataContext>
         <local:SettingsViewModel/>
     </Window.DataContext>
@@ -22,6 +22,13 @@
         <Style TargetType="{x:Type TextBox}">
             <Setter Property="Cursor" Value="IBeam"/>
         </Style>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Cursor" Value="Arrow"/>
+        </Style>
+        <Style x:Key="ErrorMessage" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="DarkRed"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
         <Style TargetType="{x:Type Button}">
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
@@ -31,51 +38,100 @@
         <Style TargetType="{x:Type DataGridRow}">
             <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
         </Style>
+        <Style x:Key="ButtonAsTextBlock" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock>
+                            <Run Text="{TemplateBinding Content}" />
+                        </TextBlock>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid x:Name="TfsToolSettings" Cursor="None" Margin="0,0,2,-4">
-        <Label x:Name="lblHeaderOne" Content="Target Team Foundation Server Backlog Release" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
-        <Button x:Name="btnImport" Content="Import Settings" HorizontalAlignment="Left" Margin="503,10,0,0" VerticalAlignment="Top" Width="100" Click="btnImport_Click"/>
-        <Label x:Name="lblServerUri" Content="TFS Server" HorizontalAlignment="Left" Margin="18,34,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbServer" HorizontalAlignment="Left" Height="23" Margin="88,38,0,0" TextWrapping="Wrap" Text="{Binding Settings.TfsServer}" VerticalAlignment="Top" Width="515"/>
-        <Label x:Name="lblWorkStore" Content="Work Store" HorizontalAlignment="Left" Margin="14,65,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbWorkStore" Text="{Binding Settings.TfsWorkStore}" HorizontalAlignment="Left" Margin="88,69,0,0" VerticalAlignment="Top" Width="170" />
-        <Label x:Name="lblProject" Content="Project" HorizontalAlignment="Left" Margin="292,65,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="cbProject" ItemsSource="{Binding Projects}" SelectedItem="{Binding Settings.TfsProject, Mode=TwoWay}" HorizontalAlignment="Left" Margin="344,69,0,0" VerticalAlignment="Top" Width="259" />
-        <Label x:Name="lblArea" Content="Area" HorizontalAlignment="Left" Margin="49,94,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="cbArea" ItemsSource="{Binding Areas}" SelectedItem="{Binding Path=Settings.TfsArea, Mode=TwoWay}" HorizontalAlignment="Left" Margin="88,98,0,0" VerticalAlignment="Top" Width="515" />
-        <Label x:Name="lblRelease" Content="Release" HorizontalAlignment="Left" Margin="33,122,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="cbRelease" ItemsSource="{Binding Iterations}" SelectedItem="{Binding Settings.TfsIteration, Mode=TwoWay}" HorizontalAlignment="Left" Margin="88,126,0,0" VerticalAlignment="Top" Width="515" />
-        <Label x:Name="lblHeaderThree" Content="Tasks won't be created for project backlog items that match any of these criteria&#xD;&#xA;(separate multiple criteria with commas - E.G. Investigate, Meeting, Plan):" HorizontalAlignment="Left" Margin="10,162,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
-        <Label x:Name="lblExceptionTitle" Content="Contains tasks with any of&#xD;&#xA;these substrings in their titles:" HorizontalAlignment="Left" Margin="18,207,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="195,209,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskExceptionFilter}" VerticalAlignment="Top" Width="408" />
-        <Label x:Name="lblBLIExceptionTitle" Content="Contains any of these&#xD;&#xA;substrings in its own title:" HorizontalAlignment="Left" Margin="18,259,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbBLIExceptionTitle"  HorizontalAlignment="Left" Height="40" Margin="167,261,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskStoryExceptionFilter}" VerticalAlignment="Top" Width="436" />
-        <Button x:Name="btnPreview" Content="Preview List of Affected Backlog Items" HorizontalAlignment="Left" Margin="377,316,0,0" VerticalAlignment="Top" Width="226" Command="{Binding RetrieveStoryItemsCommand}" IsEnabled="{Binding Settings.HasIterationValue}"/>
-        <DataGrid x:Name="dataGridOfStoryItems" ItemsSource="{Binding StoryItems}" AutoGenerateColumns="False" HorizontalAlignment="Left" Margin="10,341,0,0" Width="593" IsReadOnly="False" Height="154" VerticalAlignment="Top" SelectionMode="Extended" CanUserAddRows="False" PreviewMouseLeftButtonDown="dataGridOfStoryItems_PreviewMouseLeftButtonDown">
+        <Label x:Name="lblHeaderOne" Content="Target Team Foundation Server Backlog (Release)" HorizontalAlignment="Left" HorizontalContentAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
+        <Button x:Name="btnImport" Content="Import Settings" Margin="0,10,132,0" VerticalAlignment="Top" Click="btnImport_Click" HorizontalAlignment="Right" Width="100"/>
+        <Label x:Name="lblServerUri" Content="TFS Server" HorizontalAlignment="Left" Margin="19,34,0,0" HorizontalContentAlignment="Right" VerticalAlignment="Top"/>
+        <TextBox x:Name="tbServer" Height="23" Margin="88,38,8,0" TextWrapping="Wrap" Text="{Binding Settings.TfsServer}" VerticalAlignment="Top"/>
+        <Label x:Name="lblWorkStore" Content="Work Store" HorizontalAlignment="Left" Margin="15,65,0,0" HorizontalContentAlignment="Right" VerticalAlignment="Top"/>
+        <TextBox x:Name="tbWorkStore" Text="{Binding Settings.TfsWorkStore}" HorizontalAlignment="Left" Margin="88,69,0,0" VerticalAlignment="Top" Width="170" Height="22" />
+        <Label x:Name="lblProject" Content="Project" HorizontalAlignment="Left" Margin="292,65,0,0" HorizontalContentAlignment="Right" VerticalAlignment="Top"/>
+        <ComboBox x:Name="cbProject" ItemsSource="{Binding Projects}" SelectedItem="{Binding Settings.TfsProject, Mode=TwoWay}" Margin="344,69,8,0" VerticalAlignment="Top" />
+        <Label x:Name="lblTeam" Content="Team" HorizontalAlignment="Left" Margin="34,94,0,0" HorizontalContentAlignment="Right" VerticalAlignment="Top" Width="50"/>
+        <ComboBox x:Name="cbTeam" ItemsSource="{Binding Teams}" SelectedItem="{Binding Path=Settings.TfsTeam, Mode=TwoWay}" Margin="88,98,8,0" VerticalAlignment="Top" />
+        <Label x:Name="lblIteration" Content="Iteration" HorizontalAlignment="Left" Margin="29,122,0,0" HorizontalContentAlignment="Right" VerticalAlignment="Top"/>
+        <ComboBox x:Name="cbIteration" ItemsSource="{Binding Iterations}" SelectedItem="{Binding Settings.TfsIteration, Mode=TwoWay}" Margin="88,126,8,0" VerticalAlignment="Top" />
+        <Label x:Name="lblHeaderThree" Content="Tasks won't be created for project backlog items that match any of these criteria&#xD;&#xA;(separate multiple criteria with commas - E.G. Investigate, Meeting, Plan):" Margin="10,151,10,0" VerticalAlignment="Top" FontWeight="Bold"/>
+        <Label x:Name="lblExceptionTitle" Content="Contains tasks with any of&#xD;&#xA;these substrings in their titles:" Margin="18,196,425,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="tbExceptionTitle" Height="40" Margin="195,198,8,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskExceptionFilter}" VerticalAlignment="Top" />
+        <Label x:Name="lblBLIExceptionTitle" Content="Contains any of these&#xD;&#xA;substrings in its own title:" HorizontalAlignment="Left" Margin="18,242,0,0" VerticalAlignment="Top" Width="168"/>
+        <TextBox x:Name="tbBLIExceptionTitle" Height="40" Margin="195,244,8,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskStoryExceptionFilter}" VerticalAlignment="Top" />
+        <Button x:Name="btnPreview" Content="Reload Backlog Items" Margin="0,289,10,0" VerticalAlignment="Top" Command="{Binding RetrieveStoryItemsCommand}" IsEnabled="{Binding Settings.HasTeamValue}" HorizontalAlignment="Right" Width="142"/>
+        <DataGrid x:Name="dataGridOfStoryItems" ItemsSource="{Binding StoryItems}" AutoGenerateColumns="False" Margin="10,326,10,167" IsReadOnly="False" SelectionMode="Extended" CanUserAddRows="False">
+            <DataGrid.Resources>
+                <ResourceDictionary>
+                    <Style x:Key="{x:Type DataGridCell}" TargetType="{x:Type DataGridCell}">
+                        <Setter Property="Foreground" Value="Black" />
+                        <Setter Property="Background" Value="{x:Null}" />
+                        <Setter Property="BorderBrush" Value="{x:Null}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="Black" />
+                                <Setter Property="Background" Value="{x:Null}" />
+                                <Setter Property="BorderBrush" Value="{x:Null}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                    <Style TargetType="{x:Type DataGridRow}">
+                        <Setter Property="Foreground" Value="Black" />
+                        <Setter Property="Background" Value="{x:Null}" />
+                        <Setter Property="BorderBrush" Value="{x:Null}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="Black" />
+                                <Setter Property="Background" Value="{x:Null}" />
+                                <Setter Property="BorderBrush" Value="{x:Null}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ResourceDictionary>
+            </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTemplateColumn>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <!-- Broken! How do I send a parameter? -->
-                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected}" CommandParameter="{Binding Path=SelectedItem, ElementName=dataGridOfStoryItems}" Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <CheckBox x:Name="cbStoryItem" IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                      CommandParameter="{Binding Path=SelectedItem, ElementName=dataGridOfStoryItems}" 
+                                      Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Width="*" Header="Backlog Item title" Binding="{Binding Title}"></DataGridTextColumn>
+                <DataGridTemplateColumn Header="Backlog Item" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button x:Name="btnStoryItemTitle" Width="Auto" Style="{StaticResource ButtonAsTextBlock}" Content="{Binding Title}"
+                                     CommandParameter="{Binding Path=SelectedItem, ElementName=dataGridOfStoryItems}" 
+                                    Command="{Binding Path=DataContext.ToggleStoryItemSelectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <Label x:Name="lblHeaderTwo" Content="New Task Creation Properties:" HorizontalAlignment="Left" Margin="10,504,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
-        <Label x:Name="lblNewTitle" Content="Title Template" HorizontalAlignment="Left" Margin="11,531,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbNewTitle" HorizontalAlignment="Left" Height="23" Margin="100,534,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskTitleTemplate}" VerticalAlignment="Top" Width="372"/>
-        <Label x:Name="lblNewEstHours" Content="Est Hours" HorizontalAlignment="Left" Margin="490,531,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="tbNewEstHours" HorizontalAlignment="Left" Height="23" Margin="550,534,0,0" TextWrapping="Wrap" Text="{Binding Settings.NewTaskEstHours}" VerticalAlignment="Top" Width="53" />
-        <Label x:Name="lblNewAssignedTo" Content="Assigned to" HorizontalAlignment="Left" Margin="11,561,0,0" VerticalAlignment="Top" IsEnabled="False"/>
-        <ComboBox x:Name="cbNewAssignedTo" ItemsSource="{Binding Resources}" SelectedItem="{Binding Settings.NewTaskAssignedTo, Mode=TwoWay}" HorizontalAlignment="Left" Margin="88,565,0,0" VerticalAlignment="Top" Width="251" />
-        <Label x:Name="lblNewActivity" Content="Activity" HorizontalAlignment="Left" Margin="364,561,0,0" VerticalAlignment="Top" IsEnabled="False"/>
-        <ComboBox x:Name="cbNewActivity" ItemsSource="{Binding Activities}" SelectedItem="{Binding Settings.NewTaskActivityType, Mode=TwoWay}" HorizontalAlignment="Left" Margin="419,565,0,0" VerticalAlignment="Top" Width="184" />
-        <Button x:Name="btnGo" Content="Create New Tasks" HorizontalAlignment="Left" Margin="461,615,0,0" VerticalAlignment="Top" Width="142" Command="{Binding CreateTaskItemsCommand}" IsEnabled="{Binding Settings.IsVerified}"/>
-        <TextBlock x:Name="tblkHelp" HorizontalAlignment="Left" Margin="33,608,0,-27" TextWrapping="Wrap" Text="?" Cursor="Help" FontFamily="Segoe UI Black" FontSize="20" Width="27" VerticalAlignment="Top" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Hidden" Padding="9,0" Height="27"/>
-        <Button x:Name="btnExport" Content="Export Settings" HorizontalAlignment="Left" Margin="344,615,0,0" VerticalAlignment="Top" Width="100" Click="btnExport_Click"/>
-        <TextBlock x:Name="tbErrorMessage" HorizontalAlignment="Left" Margin="61,615,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="274" Height="37" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+        <Label x:Name="lblHeaderTwo" Content="New Task Creation Properties:" HorizontalAlignment="Left" Margin="10,0,0,132" FontWeight="Bold" Height="26" VerticalAlignment="Bottom"/>
+        <Label x:Name="lblNewTitle" Content="Title Template" HorizontalAlignment="Left" Margin="10,0,0,105" Height="26" VerticalAlignment="Bottom"/>
+        <TextBox x:Name="tbNewTitle" Margin="100,0,0,108" TextWrapping="Wrap" Text="{Binding Settings.NewTaskTitleTemplate}" Height="23" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="358"/>
+        <Label x:Name="lblNewEstHours" Content="Est Hours" Margin="0,0,83,105" HorizontalAlignment="Right" Width="60" Height="26" VerticalAlignment="Bottom"/>
+        <TextBox x:Name="tbNewEstHours" Margin="533,0,10,108" TextWrapping="Wrap" Text="{Binding Settings.NewTaskEstHours}" Height="23" VerticalAlignment="Bottom" RenderTransformOrigin="-0.312,0.696" />
+        <Label x:Name="lblNewAssignedTo" Content="Assigned to" HorizontalAlignment="Left" Margin="10,0,0,74" IsEnabled="False" Height="26" VerticalAlignment="Bottom"/>
+        <ComboBox x:Name="cbNewAssignedTo" ItemsSource="{Binding Resources}" SelectedItem="{Binding Settings.NewTaskAssignedTo, Mode=TwoWay}" Margin="100,0,0,76" Height="22" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="287" />
+        <Label x:Name="lblNewActivity" Content="Activity" Margin="0,0,153,77" IsEnabled="False" HorizontalAlignment="Right" Width="50" Height="23" VerticalAlignment="Bottom"/>
+        <ComboBox x:Name="cbNewActivity" ItemsSource="{Binding Activities}" SelectedItem="{Binding Settings.NewTaskActivityType, Mode=TwoWay}" Margin="461,0,10,76" Height="22" VerticalAlignment="Bottom" />
+        <Button x:Name="btnGo" Content="Create New Tasks" Margin="0,0,10,17" Command="{Binding CreateTaskItemsCommand}" IsEnabled="{Binding Settings.IsVerified}" Height="20" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="140"/>
+        <TextBlock x:Name="tblkHelp" HorizontalAlignment="Left" Margin="10,0,0,17" TextWrapping="Wrap" Text="?" Cursor="Help" FontFamily="Segoe UI Black" FontSize="20" Width="27" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Hidden" Padding="9,0" Height="27" VerticalAlignment="Bottom"/>
+        <Button x:Name="btnExport" Content="Export Settings" Margin="0,10,20,0" Click="btnExport_Click" HorizontalAlignment="Right" Width="93" Height="20" VerticalAlignment="Top"/>
+        <TextBlock x:Name="tbErrorMessage"  Margin="42,0,155,12" Style="{StaticResource ErrorMessage}" TextWrapping="Wrap" VerticalAlignment="Bottom" Height="57" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Foreground="#FFA00D0D"/>
     </Grid>
 </Window>

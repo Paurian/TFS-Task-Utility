@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
+// TODO: Remove tfsBaseIterationQueryPath
 namespace AddTaskToBacklogItems
 {
     [DataContract]
@@ -24,6 +25,7 @@ namespace AddTaskToBacklogItems
             TfsProject = (string)appSettings.GetValue("TfsProject", typeof(string));
             TfsBaseIterationQueryPath = (string)appSettings.GetValue("TfsBaseIterationQueryPath", typeof(string));
             TfsArea = (string)appSettings.GetValue("TfsArea", typeof(string));
+            TfsTeam = (string)appSettings.GetValue("TfsTeam", typeof(string));
             TfsIteration = (string)appSettings.GetValue("TfsIteration", typeof(string));
             // TfsIterationPath = (string)appSettings.GetValue("TfsIterationPath", typeof(string));
 
@@ -35,13 +37,13 @@ namespace AddTaskToBacklogItems
             NewTaskStoryExceptionFilter = (string)appSettings.GetValue("NewTaskStoryExceptionFilter", typeof(string));
         }
 
-        public Settings(string tfsServer, string tfsWorkStore, string tfsProject, string tfsBaseIterationQueryPath, string tfsArea, string tfsIteration) // , string tfsIterationPath)
+        public Settings(string tfsServer, string tfsWorkStore, string tfsProject, string tfsBaseIterationQueryPath, string tfsTeam, string tfsIteration) // , string tfsIterationPath)
         {
             TfsServer = tfsServer;
             TfsWorkStore = tfsWorkStore;
             TfsProject = tfsProject;
             TfsBaseIterationQueryPath = tfsBaseIterationQueryPath;
-            TfsArea = tfsArea;
+            TfsTeam = tfsTeam;
             TfsIteration = tfsIteration;
             // TfsIterationPath = tfsIterationPath;
         }
@@ -53,6 +55,7 @@ namespace AddTaskToBacklogItems
         public bool HasIterationValue { get { return !String.IsNullOrWhiteSpace(TfsIteration); } }
         public bool HasProjectValue { get { return !String.IsNullOrWhiteSpace(TfsProject); } }
         public bool HasAreaValue { get { return !String.IsNullOrWhiteSpace(TfsArea); } }
+        public bool HasTeamValue { get { return !String.IsNullOrWhiteSpace(TfsTeam); } }
         #endregion Read-Only Properties
 
         private bool isVerified = false;
@@ -79,6 +82,10 @@ namespace AddTaskToBacklogItems
         internal string tfsArea;
         public string TfsArea { get { return tfsArea; } set { if (tfsArea != value) { tfsArea = value; NotifyPropertyChanged(); } } }
         // public string TfsAreaPath { get { return TfsProject + @"\" + TfsArea; } }
+
+        [DataMember]
+        internal string tfsTeam;
+        public string TfsTeam { get { return tfsTeam; } set { if (tfsTeam != value) { tfsTeam = value; NotifyPropertyChanged(); } } }
 
         [DataMember]
         internal string tfsIteration;
@@ -137,6 +144,9 @@ namespace AddTaskToBacklogItems
                     break;
                 case "TfsArea":
                     RaisePropertyChangedEvent("HasAreaValue");
+                    break;
+                case "TfsTeam":
+                    RaisePropertyChangedEvent("HasTeamValue");
                     break;
             }
             RaisePropertyChangedEvent(propertyName);
