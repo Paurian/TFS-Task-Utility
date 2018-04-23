@@ -7,12 +7,13 @@ using System.Configuration;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using TFSRepositoryHelper;
 
 // TODO: Remove tfsBaseIterationQueryPath
 namespace AddTaskToBacklogItems
 {
     [DataContract]
-    public class Settings : ObservableObject
+    public class Settings : ObservableObject, ITFSSettings, INewTaskSettings
     {
         // public event PropertyChangedEventHandler PropertyChanged;
 

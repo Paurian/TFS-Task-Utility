@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using TFSRepositoryHelper;
 
 namespace AddTaskToBacklogItems
 {
@@ -134,8 +135,27 @@ namespace AddTaskToBacklogItems
         private void RetrieveStoryItems()
         {
             var wis = _tfsRepository.GetWorkItemStore();
-            var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings);
-            StoryItems = new ObservableCollection<StoryItem>(_tfsRepository.GetStoryItems(wic));
+            var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings, Settings);
+            List<IBackLogItem> backLogItems = _tfsRepository.GetBackLogItems(wic);
+            List<StoryItem> storyItemsFromBackLogtems = backLogItems
+                .Select(b => new StoryItem()
+                {
+                    ID = b.ID,
+                    Title = b.Title,
+                    IterationPath = b.IterationPath,
+                    AssignedTo = b.AssignedTo,
+                    BackLogItemState = b.BackLogItemState,
+                    EstimatedEffort = b.EstimatedEffort,
+                    AreaPath = b.AreaPath,
+                    Description = b.Description,
+                    AcceptanceCriteria = b.AcceptanceCriteria,
+                    IsSelected = true
+                }).ToList();
+
+            //var twic = _tfsRepository.GetCollectionOfTasks(wis, Settings);
+            //var tasksFromBackLogItems = _tfsRepository.GetTaskItems(twic);
+
+            StoryItems = new ObservableCollection<StoryItem>(storyItemsFromBackLogtems);
             if (StoryItems.Count > 0)
             {
                 Settings.IsVerified = true;
@@ -154,8 +174,10 @@ namespace AddTaskToBacklogItems
             if (Settings.IsVerified)
             {
                 var wis = _tfsRepository.GetWorkItemStore();
-                var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings);
-                var result = _tfsRepository.AddSQATaskToEachWorkItemInCollection(wis, wic, Settings, StoryItems.ToList());
+                var wic = _tfsRepository.GetListOfBacklogItemsWithoutWork(wis, Settings, Settings);
+                var result = _tfsRepository.AddTaskToEachBackLogItemInWorkItemCollection(wis, wic, Settings, StoryItems.Where(si => si.IsSelected).ToList<IBackLogItem>());
+                Settings.IsVerified = false;
+
                 if (result.Count > 0)
                 {
                     ActionState = String.Format("{0} new tasks have been created.", result);
